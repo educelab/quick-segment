@@ -1,0 +1,24 @@
+stages:
+  - test
+  - deploy
+
+### Tests ###
+.test:
+  before_script:
+    - apt update
+    - apt upgrade -y
+    - python -m pip install --upgrade pip setuptools wheel
+  script:
+    - python -m pip install .
+  tags:
+    - docker
+
+test:3.9:
+  extends: .test
+  stage: test
+  image: python:3.9
+
+test:3.10:
+  extends: .test
+  stage: test
+  image: python:3.10

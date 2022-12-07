@@ -1,0 +1,9 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/icons">
+        <file alias="arrow_left">resources/icons/arrow_left.png</file>
+        <file alias="arrow_right">resources/icons/arrow_right.png</file>
+        <file alias="double_arrow_left">resources/icons/double_arrow_left.png</file>
+        <file alias="double_arrow_right">resources/icons/double_arrow_right.png</file>
+    </qresource>
+</RCC>

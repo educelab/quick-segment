@@ -1,0 +1,12 @@
+**/.ipynb_checkpoints
+**/__pycache__
+*.npy
+*.npz
+*.dae
+data/*
+logs/*
+.idea/**
+**.egg-info/
+*.sif
+**/venv/
+**/.venv/
