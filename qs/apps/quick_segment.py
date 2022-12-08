@@ -484,8 +484,8 @@ class MainWindow(QtWidgets.QWidget):
         QtWidgets.QListWidgetItem(uuid, self.segmentation_list).setCheckState(
             Qt.CheckState.Checked)
 
-        write_ordered_vcps(str(seg_dir + "/fromInterpolator"), interpolation)
-        write_metadata(str(seg_dir + "/fromInterpolator"), "fromInterpolator")
+        write_ordered_vcps(str(str(seg_dir) + "/fromInterpolator"), interpolation)
+        write_metadata(str(str(seg_dir) + "/fromInterpolator"), "fromInterpolator")
         print("Points saved out")
 
     def clear_slice(self, vol):
