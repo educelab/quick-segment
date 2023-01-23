@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
+import datetime as dt
 from pathlib import Path
 
 import numpy as np
@@ -71,8 +71,8 @@ def load_json(dir, seg):
 
 
 def get_date():
-    t = datetime.now()
-    return f'{t.year}{t.month}{t.day}{t.hour}{t.minute}{t.second}'
+    tz = dt.timezone.utc
+    return f'{dt.datetime.now(tz).strftime("%Y%m%d%H%M%S")}'
 
 
 def get_segmentation_dir(paths_dir, uuid):
