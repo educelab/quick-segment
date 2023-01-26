@@ -53,9 +53,19 @@ class MainWindow(QtWidgets.QWidget):
 
         # plot creation and insert
         self.canvas = FigCanvas(
-            plt.Figure(figsize=(15, 6), facecolor='#3d3d3d'))
+            plt.Figure(figsize=(15, 16), facecolor='#3d3d3d'))
+
+        self.toolbar = NavigationToolbar(self.canvas, self) 
+        #removing unnecessary buttons  
+        unwanted_buttons = ['Save', 'Subplots', 'Customize']
+        for x in self.toolbar.actions():
+            if x.text() in unwanted_buttons:
+                self.toolbar.removeAction(x)
+        #adding widgets to the layout
+        slice_layout.addWidget(self.toolbar) #if not added to the layout it is added within the canvas as a collapsed version 
         slice_layout.addWidget(self.canvas)
-        self.toolbar = NavigationToolbar(self.canvas, self)
+    
+        
         self.insert_ax(vol, initial_slice)
 
         # Toolbar side of GUI layout
@@ -190,6 +200,15 @@ class MainWindow(QtWidgets.QWidget):
         # ---------------------------Segmentation Point Drawing---------------------------
         cid = self.canvas.mpl_connect('button_press_event', self.onclick)
 
+        # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
+        # cid = self.canvas.mpl_connect('key_press_event', self.on_key)
+
+    # # Function to be called when the button on keyboard is pressed
+    # def on_key(self, event):
+    #     print('Test of key event')
+    #     if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
+    #         print('you pressed', event.key, event.xdata, event.ydata)
+
     # draws in the shadows for the key slices
     def draw_shadow(self, line_idx, shadow_color, key_slice):
         for i in range(len(self.lines[line_idx][key_slice]) - 1):
@@ -214,7 +233,7 @@ class MainWindow(QtWidgets.QWidget):
         self.ax = self.canvas.figure.subplots()
         self.ax.tick_params(labelcolor='white', colors='white')
         self.ax.imshow(vol[initial_slice])
-        self.bar = None
+        self.bar = None 
 
     # Loads the slice and its points
     def update_slice(self, vol, val):
