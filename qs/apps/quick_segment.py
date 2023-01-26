@@ -198,16 +198,43 @@ class MainWindow(QtWidgets.QWidget):
         self.lines[self.active_line] = dict()
 
         # ---------------------------Segmentation Point Drawing---------------------------
-        cid = self.canvas.mpl_connect('button_press_event', self.onclick)
+        cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
 
         # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
-        # cid = self.canvas.mpl_connect('key_press_event', self.on_key)
+        cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
 
-    # # Function to be called when the button on keyboard is pressed
-    # def on_key(self, event):
-    #     print('Test of key event')
-    #     if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
-    #         print('you pressed', event.key, event.xdata, event.ydata)
+    # Function to be called when the mouse is scrolled
+    def onScroll(self, event):
+        if event.inaxes == self.ax:
+            self.toolbar.push_current()
+            base_scale = 1.2
+            # get the current x and y limits
+            cur_xlim = self.ax.get_xlim()
+            cur_ylim = self.ax.get_ylim()
+            
+            if event.button == 'up':
+                # deal with zoom in
+                scale_factor = 1/base_scale
+            elif event.button == 'down':
+                # deal with zoom out
+                scale_factor = base_scale
+            else:
+                # deal with something that should never happen
+                scale_factor = 1
+                print(event.button)
+            # set new limits
+            new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
+            new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
+            
+            relx = (cur_xlim[1]-event.xdata)/(cur_xlim[1]-cur_xlim[0])
+            rely = (cur_ylim[1]-event.ydata)/(cur_ylim[1]-cur_ylim[0])
+
+            self.ax.set_xlim([event.xdata-new_width*(1-relx), event.xdata+new_width*(relx)])
+            self.ax.set_ylim([event.ydata-new_height*(1-rely), event.ydata+new_height*(rely)])
+            
+            self.canvas.draw()
+            self.toolbar.push_current()
+
 
     # draws in the shadows for the key slices
     def draw_shadow(self, line_idx, shadow_color, key_slice):
