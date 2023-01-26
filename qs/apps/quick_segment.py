@@ -53,9 +53,19 @@ class MainWindow(QtWidgets.QWidget):
 
         # plot creation and insert
         self.canvas = FigCanvas(
-            plt.Figure(figsize=(15, 6), facecolor='#3d3d3d'))
+            plt.Figure(figsize=(15, 16), facecolor='#3d3d3d'))
+
+        self.toolbar = NavigationToolbar(self.canvas, self) 
+        #removing unnecessary buttons  
+        unwanted_buttons = ['Save', 'Subplots', 'Customize']
+        for x in self.toolbar.actions():
+            if x.text() in unwanted_buttons:
+                self.toolbar.removeAction(x)
+        #adding widgets to the layout
+        slice_layout.addWidget(self.toolbar) #if not added to the layout it is added within the canvas as a collapsed version
         slice_layout.addWidget(self.canvas)
-        self.toolbar = NavigationToolbar(self.canvas, self)
+    
+        
         self.insert_ax(vol, initial_slice)
 
         # Toolbar side of GUI layout
@@ -188,7 +198,43 @@ class MainWindow(QtWidgets.QWidget):
         self.lines[self.active_line] = dict()
 
         # ---------------------------Segmentation Point Drawing---------------------------
-        cid = self.canvas.mpl_connect('button_press_event', self.onclick)
+        cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
+
+        # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
+        cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
+
+    # Function to be called when the mouse is scrolled
+    def onScroll(self, event):
+        if event.inaxes == self.ax:
+            self.toolbar.push_current()
+            base_scale = 1.2
+            # get the current x and y limits
+            cur_xlim = self.ax.get_xlim()
+            cur_ylim = self.ax.get_ylim()
+            
+            if event.button == 'up':
+                # deal with zoom in
+                scale_factor = 1/base_scale
+            elif event.button == 'down':
+                # deal with zoom out
+                scale_factor = base_scale
+            else:
+                # deal with something that should never happen
+                scale_factor = 1
+                print(event.button)
+            # set new limits
+            new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
+            new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
+            
+            relx = (cur_xlim[1]-event.xdata)/(cur_xlim[1]-cur_xlim[0])
+            rely = (cur_ylim[1]-event.ydata)/(cur_ylim[1]-cur_ylim[0])
+
+            self.ax.set_xlim([event.xdata-new_width*(1-relx), event.xdata+new_width*(relx)])
+            self.ax.set_ylim([event.ydata-new_height*(1-rely), event.ydata+new_height*(rely)])
+            
+            self.canvas.draw()
+            self.toolbar.push_current()
+
 
     # draws in the shadows for the key slices
     def draw_shadow(self, line_idx, shadow_color, key_slice):
@@ -214,7 +260,7 @@ class MainWindow(QtWidgets.QWidget):
         self.ax = self.canvas.figure.subplots()
         self.ax.tick_params(labelcolor='white', colors='white')
         self.ax.imshow(vol[initial_slice])
-        self.bar = None
+        self.bar = None 
 
     # Loads the slice and its points
     def update_slice(self, vol, val):
