@@ -58,7 +58,7 @@ class MainWindow(QtWidgets.QWidget):
         self.toolbar = NavigationToolbar(self.canvas, self) 
         #removing unnecessary buttons  
         unwanted_buttons = ['Save', 'Subplots', 'Customize']
-        for x in self.toolbar.actions()
+        for x in self.toolbar.actions():
             if x.text() in unwanted_buttons:
                 self.toolbar.removeAction(x)
         #adding widgets to the layout
