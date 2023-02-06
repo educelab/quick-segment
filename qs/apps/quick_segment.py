@@ -368,6 +368,26 @@ class MainWindow(QtWidgets.QWidget):
                                edgecolor='red'))
                 self.canvas.draw_idle()
 
+                # Add tracker on shadows
+                # Previous slice shadow
+                if self.show_shadows_toggle.isChecked() and len(self.lines[self.active_line][slice_num]) > 0:
+                    drawn_points = len(self.lines[self.active_line][slice_num]) - 1
+                    # putting in shadow for the previous key slice
+                    last_slice = find_previous_key(int(slice_num),
+                                                self.lines[self.active_line])  # previous key slice shadow
+                    if last_slice != -1:
+                        self.ax.add_artist(
+                            plt.Circle((last_slice[drawn_points][0], last_slice[drawn_points][1]), 7, facecolor='none',
+                                    edgecolor='black'))
+
+                    # putting in the shadow for the next key slice
+                    next_slice = find_next_key(int(slice_num),
+                                                self.lines[self.active_line])  # next key slice shadow
+                    if next_slice != -1:
+                        self.ax.add_artist(
+                            plt.Circle((next_slice[drawn_points][0], next_slice[drawn_points][1]), 7, facecolor='none',
+                                    edgecolor='white'))
+
                 # on slice that has point == key slice and add it to the key slice list
                 # Find slice in lines dictionary
                 if slice_num in self.lines[self.active_line]:
