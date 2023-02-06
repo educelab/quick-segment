@@ -150,6 +150,10 @@ class MainWindow(QtWidgets.QWidget):
         self.show_shadows_toggle.setChecked(True)
         self.show_shadows_toggle.stateChanged.connect(
             lambda: self.update_slice(vol, self.slice_slider.value()))
+        # undo last point button
+        self.undo_point_button = QtWidgets.QPushButton()
+        self.undo_point_button.setText('Undo Last Point')
+        self.undo_point_button.clicked.connect(lambda: self.undo_point(vol))
         # clear slice button
         self.clear_slice_button = QtWidgets.QPushButton()
         self.clear_slice_button.setText('Clear Slice')
@@ -174,6 +178,7 @@ class MainWindow(QtWidgets.QWidget):
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
         # ToolBar_Layout.addLayout(Seg_layout)
+        toolbar_layout.addWidget(self.undo_point_button)
         toolbar_layout.addWidget(self.clear_slice_button)
         toolbar_layout.addWidget(self.clear_all_button)
         toolbar_layout.addWidget(self.show_shadows_toggle)
@@ -256,6 +261,41 @@ class MainWindow(QtWidgets.QWidget):
                                          color=shadow_color, alpha=1,
                                          zorder=50))
 
+    # undos the last point that was drawn on that slice
+    def undo_point(self, vol):
+        slice_num = self.slice_slider.value()
+        #making sure to only delete points from current page
+        if slice_num in self.lines[self.active_line]:
+            length = len(self.lines[self.active_line][slice_num])
+            if (length > 0):
+                #remove the last point drawn from the list
+                self.lines[self.active_line][slice_num].pop()
+                
+                #if there are no more points on the slice, remove the keyslice from the list
+                if (length == 1):
+                    self.lines[self.active_line].pop(slice_num)
+                
+                self.update_slice(vol, slice_num)
+
+    #loads the points that for that keyslice 
+    def load_points(self, lines, val, circle_size):
+        for i in range(len(lines[int(val)]) - 1):
+            point = lines[int(val)][i]
+            next_point = lines[int(val)][i + 1]
+            self.ax.plot([point[0], next_point[0]],
+                            [point[1], next_point[1]], color='red')
+            self.ax.add_artist(
+                plt.Circle((point[0], point[1]), 3.5, color='red'))
+            self.ax.add_artist(
+                plt.Circle((point[0], point[1]), circle_size,
+                            facecolor='none', edgecolor='red'))
+        self.ax.add_artist(
+            plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
+                        3.5, color='red'))
+        self.ax.add_artist(
+            plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
+                        circle_size, facecolor='none', edgecolor='red'))
+
     def insert_ax(self, vol, initial_slice):
         self.ax = self.canvas.figure.subplots()
         self.ax.tick_params(labelcolor='white', colors='white')
@@ -301,22 +341,8 @@ class MainWindow(QtWidgets.QWidget):
 
             # loading in the points
             if int(val) in lines:
-                for i in range(len(lines[int(val)]) - 1):
-                    point = lines[int(val)][i]
-                    next_point = lines[int(val)][i + 1]
-                    self.ax.plot([point[0], next_point[0]],
-                                 [point[1], next_point[1]], color='red')
-                    self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), 3.5, color='red'))
-                    self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), circle_size,
-                                   facecolor='none', edgecolor='red'))
-                self.ax.add_artist(
-                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
-                               3.5, color='red'))
-                self.ax.add_artist(
-                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
-                               circle_size, facecolor='none', edgecolor='red'))
+                self.load_points(lines, val, circle_size)
+
             # drawing the interpolated points on slices between keyslices
             elif verify_interpolation(int(val), lines):
                 previous_key = find_previous_key(int(val), lines)
@@ -356,6 +382,7 @@ class MainWindow(QtWidgets.QWidget):
                 self.lines[self.active_line].setdefault(slice_num, []).append(
                     new_point)
 
+                # drawing the line between the past and new point
                 if len(self.lines[self.active_line][slice_num]) > 1:
                     prev_point = self.lines[self.active_line][slice_num][-2]
                     self.ax.plot([prev_point[0], new_point[0]],
