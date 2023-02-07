@@ -277,24 +277,6 @@ class MainWindow(QtWidgets.QWidget):
                 
                 self.update_slice(vol, slice_num)
 
-    #loads the points that for that keyslice 
-    def load_points(self, lines, val, circle_size):
-        for i in range(len(lines[int(val)]) - 1):
-            point = lines[int(val)][i]
-            next_point = lines[int(val)][i + 1]
-            self.ax.plot([point[0], next_point[0]],
-                            [point[1], next_point[1]], color='red')
-            self.ax.add_artist(
-                plt.Circle((point[0], point[1]), 3.5, color='red'))
-            self.ax.add_artist(
-                plt.Circle((point[0], point[1]), circle_size,
-                            facecolor='none', edgecolor='red'))
-        self.ax.add_artist(
-            plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
-                        3.5, color='red'))
-        self.ax.add_artist(
-            plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
-                        circle_size, facecolor='none', edgecolor='red'))
 
     def insert_ax(self, vol, initial_slice):
         self.ax = self.canvas.figure.subplots()
@@ -341,7 +323,22 @@ class MainWindow(QtWidgets.QWidget):
 
             # loading in the points
             if int(val) in lines:
-                self.load_points(lines, val, circle_size)
+                for i in range(len(lines[int(val)]) - 1):
+                    point = lines[int(val)][i]
+                    next_point = lines[int(val)][i + 1]
+                    self.ax.plot([point[0], next_point[0]],
+                                    [point[1], next_point[1]], color='red')
+                    self.ax.add_artist(
+                        plt.Circle((point[0], point[1]), 3.5, color='red'))
+                    self.ax.add_artist(
+                        plt.Circle((point[0], point[1]), circle_size,
+                                    facecolor='none', edgecolor='red'))
+                self.ax.add_artist(
+                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
+                                3.5, color='red'))
+                self.ax.add_artist(
+                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
+                                circle_size, facecolor='none', edgecolor='red'))
 
             # drawing the interpolated points on slices between keyslices
             elif verify_interpolation(int(val), lines):
