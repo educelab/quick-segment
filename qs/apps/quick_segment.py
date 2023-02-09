@@ -53,7 +53,7 @@ class MainWindow(QtWidgets.QWidget):
 
         # plot creation and insert
         self.canvas = FigCanvas(
-            plt.Figure(figsize=(15, 16), facecolor='#3d3d3d'))
+            plt.Figure(figsize=(15, 17), facecolor='#3d3d3d'))
 
         self.toolbar = NavigationToolbar(self.canvas, self) 
         #removing unnecessary buttons  
@@ -212,17 +212,26 @@ class MainWindow(QtWidgets.QWidget):
     def onScroll(self, event):
         if event.inaxes == self.ax:
             self.toolbar.push_current()
-            base_scale = 1.2
+            base_scale = 1.15
             # get the current x and y limits
             cur_xlim = self.ax.get_xlim()
             cur_ylim = self.ax.get_ylim()
+            global_xlim = self.vol[0].shape[1]
+            global_ylim = self.vol[0].shape[0]
             
             if event.button == 'up':
                 # deal with zoom in
                 scale_factor = 1/base_scale
             elif event.button == 'down':
                 # deal with zoom out
-                scale_factor = base_scale
+                if (cur_xlim[0] >= 0 and cur_ylim[0] >= 0 and 
+                    cur_xlim[1] <= global_xlim and cur_ylim[1] <= global_ylim):
+                    scale_factor = base_scale
+                else:
+                    scale_factor = 1
+                    print("cur_xlim[0]: ", cur_xlim[0])
+                    print("cur_xlim[1]: ", cur_xlim[1])
+                    print("global z lim", global_xlim)
             else:
                 # deal with something that should never happen
                 scale_factor = 1
