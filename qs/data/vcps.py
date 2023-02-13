@@ -14,8 +14,9 @@ def fill_seg_list(self, vol, paths_dir, lst):
     for seg in os.listdir(paths_dir):
         f = os.path.join(paths_dir, seg)
         # checking if it is a file
-        if os.path.isdir(f) and os.path.isfile(
-                os.path.join(f, 'pointset.vcps')) and (
+        if os.path.isdir(f) and (
+            os.path.isfile(os.path.join(f, 'pointset.vcps')) or 
+            os.path.isfile(os.path.join(f, 'pointset.json'))) and (
                 seg != 'fromInterpolator'):
             item = QtWidgets.QListWidgetItem(seg, lst).setCheckState(
                 Qt.CheckState.Unchecked)  # can not add listeners to the QListItems but can check their state
