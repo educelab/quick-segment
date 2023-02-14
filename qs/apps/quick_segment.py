@@ -57,7 +57,7 @@ class MainWindow(QtWidgets.QWidget):
 
         self.toolbar = NavigationToolbar(self.canvas, self) 
         #removing unnecessary buttons  
-        unwanted_buttons = ['Save', 'Subplots', 'Customize']
+        unwanted_buttons = ['Home', 'Save', 'Subplots', 'Customize', 'Zoom']
         for x in self.toolbar.actions():
             if x.text() in unwanted_buttons:
                 self.toolbar.removeAction(x)
@@ -201,6 +201,10 @@ class MainWindow(QtWidgets.QWidget):
         self.lines = dict()
         self.active_line = 0
         self.lines[self.active_line] = dict()
+        self.init_x_zoom = self.ax.get_xlim()
+        self.init_y_zoom = self.ax.get_ylim()
+        self.zoom_width = self.init_x_zoom
+        self.zoom_height = self.init_y_zoom
 
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -218,6 +222,8 @@ class MainWindow(QtWidgets.QWidget):
             cur_ylim = self.ax.get_ylim()
             global_xlim = self.vol[0].shape[1]
             global_ylim = self.vol[0].shape[0]
+
+            zoom_limit = False
             
             if event.button == 'up':
                 # deal with zoom in
@@ -228,23 +234,30 @@ class MainWindow(QtWidgets.QWidget):
                     cur_xlim[1] <= global_xlim and cur_ylim[1] <= global_ylim):
                     scale_factor = base_scale
                 else:
-                    scale_factor = 1
-                    print("cur_xlim[0]: ", cur_xlim[0])
-                    print("cur_xlim[1]: ", cur_xlim[1])
-                    print("global z lim", global_xlim)
+                    self.ax.set_xlim(self.init_x_zoom)
+                    self.ax.set_ylim(self.init_y_zoom)
+                    self.zoom_width = self.init_x_zoom
+                    self.zoom_height = self.init_y_zoom
+                    zoom_limit = True
             else:
                 # deal with something that should never happen
                 scale_factor = 1
                 print(event.button)
-            # set new limits
-            new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
-            new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
-            
-            relx = (cur_xlim[1]-event.xdata)/(cur_xlim[1]-cur_xlim[0])
-            rely = (cur_ylim[1]-event.ydata)/(cur_ylim[1]-cur_ylim[0])
 
-            self.ax.set_xlim([event.xdata-new_width*(1-relx), event.xdata+new_width*(relx)])
-            self.ax.set_ylim([event.ydata-new_height*(1-rely), event.ydata+new_height*(rely)])
+            if (not zoom_limit):
+                # set new limits
+                new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
+                new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
+                
+                relx = (cur_xlim[1]-event.xdata)/(cur_xlim[1]-cur_xlim[0])
+                rely = (cur_ylim[1]-event.ydata)/(cur_ylim[1]-cur_ylim[0])
+
+                # Store zoom variables
+                self.zoom_width = [event.xdata-new_width*(1-relx), event.xdata+new_width*(relx)]
+                self.zoom_height = [event.ydata-new_height*(1-rely), event.ydata+new_height*(rely)]
+
+                self.ax.set_xlim(self.zoom_width)
+                self.ax.set_ylim(self.zoom_height)
             
             self.canvas.draw()
             self.toolbar.push_current()
@@ -297,6 +310,9 @@ class MainWindow(QtWidgets.QWidget):
     def update_slice(self, vol, val):
         self.ax.clear()
         self.ax.imshow(vol[val])
+
+        self.ax.set_xlim(self.zoom_width)
+        self.ax.set_ylim(self.zoom_height)
 
         # update the slice index box
         self.slice_index.setText(str(val))
