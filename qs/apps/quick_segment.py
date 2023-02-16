@@ -311,12 +311,14 @@ class MainWindow(QtWidgets.QWidget):
         self.ax.clear()
         self.ax.imshow(vol[val])
 
+        # Set the zoom
         self.ax.set_xlim(self.zoom_width)
         self.ax.set_ylim(self.zoom_height)
 
-        # update the slice index box
+        # Update the slice index box
         self.slice_index.setText(str(val))
 
+        # For each open segmentation in the list
         for uuid in self.lines:
             lines = self.lines[uuid]
 
@@ -370,6 +372,7 @@ class MainWindow(QtWidgets.QWidget):
             elif verify_interpolation(int(val), lines):
                 previous_key = find_previous_key(int(val), lines)
                 next_key = find_next_key(int(val), lines)
+
                 point = interpolate_point(int(val), previous_key[0],
                                           next_key[0])
                 prev_point = point # Initialize it to the point, update later
