@@ -80,7 +80,7 @@ def partial_linear_interpolation(ax, lines, slice, circle_size=0):
         prev_point = point
         point = next_point
 
-    last_point = interpolate_point(int(val), previous_key[-1],
+    last_point = interpolate_point(slice, previous_key[-1],
                                     next_key[-1])
     ax.add_artist(
         plt.Circle((last_point[0], last_point[1]), 3.5,
@@ -167,7 +167,7 @@ def find_normal_direction(point, n1, n2):
 #--------------------------------------------------------------
 
 # VERIFY INTERPOLATION FUCNTIONS ------------------------------
-def verify_interpolation(current, lines):
+def verify_partial_interpolation(current, lines):
     """ 
     Verifies if a partial interpolation is possible between two slices at any given intermediate slice
 
