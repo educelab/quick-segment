@@ -21,7 +21,7 @@ from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
                      write_seg_json)
 from qs.interpolation import (find_next_key, find_previous_key,
                               full_interpolation, interpolate_point,
-                              verify_full_interpolation, verify_interpolation)
+                              verify_full_interpolation, verify_interpolation, find_normal_direction)
 from qs.math import find_min
 
 
@@ -358,6 +358,7 @@ class MainWindow(QtWidgets.QWidget):
                     self.ax.add_artist(
                         plt.Circle((point[0], point[1]), circle_size,
                                     facecolor='none', edgecolor='red'))
+
                 self.ax.add_artist(
                     plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
                                 3.5, color='red'))
@@ -371,6 +372,7 @@ class MainWindow(QtWidgets.QWidget):
                 next_key = find_next_key(int(val), lines)
                 point = interpolate_point(int(val), previous_key[0],
                                           next_key[0])
+                prev_point = point # Initialize it to the point, update later
                 for i in range(0, len(previous_key) - 1):
                     next_point = interpolate_point(int(val),
                                                    previous_key[i + 1],
@@ -382,6 +384,16 @@ class MainWindow(QtWidgets.QWidget):
                     self.ax.add_artist(
                         plt.Circle((point[0], point[1]), circle_size,
                                    facecolor='none', edgecolor='yellow'))
+
+                    # Test find_normal
+                    if i > 0:
+                        normal_direction = find_normal_direction(point, prev_point, next_point)
+                        self.ax.plot([point[0], point[0] + normal_direction[0]],
+                                    [point[1], point[1] + normal_direction[1]], color='yellow')
+                        self.ax.plot([point[0], point[0] - normal_direction[0]],
+                                    [point[1], point[1] - normal_direction[1]], color='yellow')
+
+                    prev_point = point
                     point = next_point
 
                 last_point = interpolate_point(int(val), previous_key[-1],

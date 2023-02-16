@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import numpy as np
+from qs.math import normalize_direction, calculate_sq_distance
+from math import sqrt
 
 
 def find_coordinate(start, end, current, coord):
@@ -32,8 +34,19 @@ def find_previous_key(current, lines):
 
     return temp[slices[pos - 1]]
 
+#--------------------------------------------------------------
+#               LINEAR INTERPOLATION FUNCTIONS
+#--------------------------------------------------------------
+
 
 def interpolate_point(current, prev_key, next_key):
+    """ 
+    Returns a new point, interpolad between two points
+
+    :param current: the number of the current slice
+    :param prev_key: point in the previous key slice
+    :param next_key: point in the next slice
+    """
     return [
         find_coordinate(prev_key, next_key, current, 'x'),
         find_coordinate(prev_key, next_key, current, 'y'),
@@ -42,6 +55,12 @@ def interpolate_point(current, prev_key, next_key):
 
 
 def verify_interpolation(current, lines):
+    """ 
+    Verifies if a PARTIAL interpolation is possible between two slices at any given intermediate slice
+
+    :param current: the number of the current slice
+    :param lines: an array of lines where each line is a list of points in a key slice
+    """
     prev_key = find_previous_key(current, lines)
     next_key = find_next_key(current, lines)
 
@@ -55,6 +74,11 @@ def verify_interpolation(current, lines):
 
 
 def verify_full_interpolation(lines):
+    """ 
+    Verifies if a full interpolation is possible between all lines
+
+    :param lines: an array of lines where each line is a list of points in a key slice
+    """
     temp = len(lines[list(lines.keys())[0]])
     for line in lines:
         if len(lines[line]) != temp:
@@ -62,8 +86,13 @@ def verify_full_interpolation(lines):
         temp = len(lines[line])
     return True
 
-
 def full_interpolation(lines):
+    """ 
+    Interpolates the full extent of the segmentation
+
+    :param lines: an array of lines where each line is a list of points in a key slice
+    """
+
     if len(lines) <= 1:
         print('add points to at least two separate slices')
         return
@@ -101,3 +130,33 @@ def full_interpolation(lines):
         cloud[-1].append(point)
 
     return np.array(cloud, dtype='float64')
+
+
+
+#--------------------------------------------------------------
+#         NON LINEAR INTERPOLATION FUNCTIONS (for now helpers)
+#--------------------------------------------------------------
+
+def find_normal_direction(point, n1, n2):
+    """ 
+    Finds and returns the normal of the point based on its neighbors
+
+    :param point: a point which you want the normal of
+    :param n1: the neighboring point
+    :param n2: the other neighboring point
+    """
+
+    # Normalize the the direction vectors that point to the neighbors
+    n1 = normalize_direction(n1, point, 20)
+    n2 = normalize_direction(n2, point, 20)
+
+    pivot = [point[0] + (n1[0] + n2[0]),
+                 point[1] + (n1[1] + n2[1]),
+                 point[2] + (n1[2] + n2[2])]
+
+    pivot = normalize_direction(pivot, point, 30)
+
+    return pivot
+
+    
+
