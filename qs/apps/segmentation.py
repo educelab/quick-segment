@@ -35,10 +35,7 @@ class SegmentWindow(QtWidgets.QWidget):
     def __init__(self, vol, seg_dir, initial_slice):
         super().__init__()
 
-        # main_window = QS.StackedWindow()
-
          # -------------initial window specs---------------
-        # StackedWindow.window_set('Interpolation Segmentation') #-----> not working 
         self.vol = vol
 
         # ------------------------------Window GUI-----------------------------
@@ -55,8 +52,6 @@ class SegmentWindow(QtWidgets.QWidget):
             plt.Figure(figsize=[8,7], layout= 'tight', facecolor='#3d3d3d'))
         # plt.tight_layout()
         
-        
-
         self.toolbar = NavigationToolbar(self.canvas, self) 
         #removing unnecessary buttons  
         unwanted_buttons = ['Home', 'Save', 'Subplots', 'Customize', 'Zoom']
@@ -66,7 +61,6 @@ class SegmentWindow(QtWidgets.QWidget):
         #adding widgets to the layout
         slice_layout.addWidget(self.toolbar) #if not added to the layout it is added within the canvas as a collapsed version
         slice_layout.addWidget(self.canvas)
-    
         
         self.insert_ax(vol, initial_slice)
 
@@ -207,7 +201,9 @@ class SegmentWindow(QtWidgets.QWidget):
         # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
         cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
 
-        # Function to be called when the mouse is scrolled
+    
+    #-------------------------------Mouse Functions-------------------------------v
+    # Function to be called when the mouse is scrolled
     def onScroll(self, event):
         if event.inaxes == self.ax:
             self.toolbar.push_current()
@@ -257,44 +253,71 @@ class SegmentWindow(QtWidgets.QWidget):
             self.canvas.draw()
             self.toolbar.push_current()
 
+    # Function to be called when the slice is clicked to add points
+    def onclick(self, event):
+        if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
+            if event.button == 1:  # Left click
+                slice_num = self.slice_slider.value()
+                new_point = [event.xdata, event.ydata, slice_num]
+                self.lines[self.active_line].setdefault(slice_num, []).append(
+                    new_point)
 
-    # draws in the shadows for the key slices
-    def draw_shadow(self, line_idx, shadow_color, key_slice):
-        for i in range(len(self.lines[line_idx][key_slice]) - 1):
-            point = self.lines[line_idx][key_slice][i]
-            next_point = self.lines[line_idx][key_slice][i + 1]
-            self.ax.plot([point[0], next_point[0]], [point[1], next_point[1]],
-                         color=shadow_color, alpha=0.5)
-            self.ax.add_artist(
-                plt.Circle((point[0], point[1]), 3.5, color=shadow_color,
-                           alpha=0.5))
-        self.ax.add_artist(plt.Circle((self.lines[line_idx][key_slice][-1][0],
-                                       self.lines[line_idx][key_slice][-1][1]),
-                                      3.5, color=shadow_color, alpha=0.5))
-        self.ax.add_artist(plt.Rectangle((self.lines[line_idx][key_slice][0][
-                                              0] - 3.5,
-                                          self.lines[line_idx][key_slice][0][
-                                              1] - 3.5), 7.5, 7.5,
-                                         color=shadow_color, alpha=1,
-                                         zorder=50))
+                # drawing the line between the past and new point
+                if len(self.lines[self.active_line][slice_num]) > 1:
+                    prev_point = self.lines[self.active_line][slice_num][-2]
+                    self.ax.plot([prev_point[0], new_point[0]],
+                                 [prev_point[1], new_point[1]], color='red')
 
-    # undos the last point that was drawn on that slice
-    def undo_point(self, vol):
-        slice_num = self.slice_slider.value()
-        #making sure to only delete points from current page
-        if slice_num in self.lines[self.active_line]:
-            length = len(self.lines[self.active_line][slice_num])
-            if (length > 0):
-                #remove the last point drawn from the list
-                self.lines[self.active_line][slice_num].pop()
-                
-                #if there are no more points on the slice, remove the keyslice from the list
-                if (length == 1):
-                    self.lines[self.active_line].pop(slice_num)
-                
-                self.update_slice(vol, slice_num)
+                self.ax.add_artist(
+                    plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
+                self.ax.add_artist(
+                    plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
+                               edgecolor='red'))
+                self.canvas.draw_idle()
 
+                # Add tracker on shadows
+                # Previous slice shadow
+                if self.show_shadows_toggle.isChecked() and len(self.lines[self.active_line][slice_num]) > 0:
+                    drawn_points = len(self.lines[self.active_line][slice_num]) - 1
+                    # putting in shadow for the previous key slice
+                    last_slice = find_previous_key(int(slice_num),
+                                                self.lines[self.active_line])  # previous key slice shadow
+                    if last_slice != -1:
+                        self.ax.add_artist(
+                            plt.Circle((last_slice[drawn_points][0], last_slice[drawn_points][1]), 7, facecolor='none',
+                                    edgecolor='black'))
 
+                    # putting in the shadow for the next key slice
+                    next_slice = find_next_key(int(slice_num),
+                                                self.lines[self.active_line])  # next key slice shadow
+                    if next_slice != -1:
+                        self.ax.add_artist(
+                            plt.Circle((next_slice[drawn_points][0], next_slice[drawn_points][1]), 7, facecolor='none',
+                                    edgecolor='white'))
+
+                # on slice that has point == key slice and add it to the key slice list
+                # Find slice in lines dictionary
+                if slice_num in self.lines[self.active_line]:
+                    # if not already on list
+                    if len(self.lines[self.active_line][slice_num]) == 1:
+                        self.key_slice_drop_down.addItem(str(slice_num))
+                        self.key_slice_drop_down.setCurrentText(str(slice_num))
+            elif event.button == 3:  # Right click
+                slice_num = self.slice_slider.value()
+                min = 99999999
+                closest_line = 0
+                for uuid in self.lines:
+                    seg = self.lines[uuid]
+                    if slice_num in seg:
+                        temp_min = find_min(
+                            [event.xdata, event.ydata, slice_num],
+                            seg[slice_num])
+                        if temp_min < min:
+                            min = temp_min
+                            closest_line = uuid
+                self.set_active(closest_line)
+
+    #---------------------------Matplotlib Functions-----------------------------
     def insert_ax(self, vol, initial_slice):
         self.ax = self.canvas.figure.subplots()
         self.ax.tick_params(labelcolor='white', colors='white')
@@ -390,157 +413,28 @@ class SegmentWindow(QtWidgets.QWidget):
 
         self.canvas.draw_idle()
 
-    # Function to be called when the slice is clicked to add points
-    def onclick(self, event):
-        if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
-            if event.button == 1:  # Left click
-                slice_num = self.slice_slider.value()
-                new_point = [event.xdata, event.ydata, slice_num]
-                self.lines[self.active_line].setdefault(slice_num, []).append(
-                    new_point)
+    # draws in the shadows for the key slices
+    def draw_shadow(self, line_idx, shadow_color, key_slice):
+        for i in range(len(self.lines[line_idx][key_slice]) - 1):
+            point = self.lines[line_idx][key_slice][i]
+            next_point = self.lines[line_idx][key_slice][i + 1]
+            self.ax.plot([point[0], next_point[0]], [point[1], next_point[1]],
+                         color=shadow_color, alpha=0.5)
+            self.ax.add_artist(
+                plt.Circle((point[0], point[1]), 3.5, color=shadow_color,
+                           alpha=0.5))
+        self.ax.add_artist(plt.Circle((self.lines[line_idx][key_slice][-1][0],
+                                       self.lines[line_idx][key_slice][-1][1]),
+                                      3.5, color=shadow_color, alpha=0.5))
+        self.ax.add_artist(plt.Rectangle((self.lines[line_idx][key_slice][0][
+                                              0] - 3.5,
+                                          self.lines[line_idx][key_slice][0][
+                                              1] - 3.5), 7.5, 7.5,
+                                         color=shadow_color, alpha=1,
+                                         zorder=50))
 
-                # drawing the line between the past and new point
-                if len(self.lines[self.active_line][slice_num]) > 1:
-                    prev_point = self.lines[self.active_line][slice_num][-2]
-                    self.ax.plot([prev_point[0], new_point[0]],
-                                 [prev_point[1], new_point[1]], color='red')
 
-                self.ax.add_artist(
-                    plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
-                self.ax.add_artist(
-                    plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
-                               edgecolor='red'))
-                self.canvas.draw_idle()
-
-                # Add tracker on shadows
-                # Previous slice shadow
-                if self.show_shadows_toggle.isChecked() and len(self.lines[self.active_line][slice_num]) > 0:
-                    drawn_points = len(self.lines[self.active_line][slice_num]) - 1
-                    # putting in shadow for the previous key slice
-                    last_slice = find_previous_key(int(slice_num),
-                                                self.lines[self.active_line])  # previous key slice shadow
-                    if last_slice != -1:
-                        self.ax.add_artist(
-                            plt.Circle((last_slice[drawn_points][0], last_slice[drawn_points][1]), 7, facecolor='none',
-                                    edgecolor='black'))
-
-                    # putting in the shadow for the next key slice
-                    next_slice = find_next_key(int(slice_num),
-                                                self.lines[self.active_line])  # next key slice shadow
-                    if next_slice != -1:
-                        self.ax.add_artist(
-                            plt.Circle((next_slice[drawn_points][0], next_slice[drawn_points][1]), 7, facecolor='none',
-                                    edgecolor='white'))
-
-                # on slice that has point == key slice and add it to the key slice list
-                # Find slice in lines dictionary
-                if slice_num in self.lines[self.active_line]:
-                    # if not already on list
-                    if len(self.lines[self.active_line][slice_num]) == 1:
-                        self.key_slice_drop_down.addItem(str(slice_num))
-                        self.key_slice_drop_down.setCurrentText(str(slice_num))
-            elif event.button == 3:  # Right click
-                slice_num = self.slice_slider.value()
-                min = 99999999
-                closest_line = 0
-                for uuid in self.lines:
-                    seg = self.lines[uuid]
-                    if slice_num in seg:
-                        temp_min = find_min(
-                            [event.xdata, event.ydata, slice_num],
-                            seg[slice_num])
-                        if temp_min < min:
-                            min = temp_min
-                            closest_line = uuid
-                self.set_active(closest_line)
-
-    # function set the slice as active
-    def set_active(self, uuid):
-        self.active_line = uuid
-        # clear the current selection
-        self.clear_selected()
-        item = self.segmentation_list.findItems(str(uuid),
-                                                Qt.MatchFlag.MatchExactly)
-        if not item:  # the list is empty meaning the segmentation is not one which was previously saved
-            self.segmentation_list.setCurrentItem(
-                self.segmentation_list.currentItem(),
-                QtCore.QItemSelectionModel.SelectionFlag.Deselect)
-        else:
-            self.segmentation_list.setCurrentItem(item[0],
-                                                  QtCore.QItemSelectionModel.SelectionFlag.Select)
-
-        # need to make sure that the key_slice_drop down matches the active seg
-        # clearing the key-slices drop down
-        self.key_slice_drop_down.clear()
-        self.key_slice_drop_down.addItem("~")
-        # filling with the key slices from the dictionary
-        for keySlice in self.lines[uuid]:
-            self.key_slice_drop_down.addItem(str(keySlice))
-
-        self.update_slice(self.vol, self.slice_slider.value())
-
-    # Deselects any selected items in the list
-    def clear_selected(self):
-        selected = self.segmentation_list.selectedItems()
-        for item in selected:
-            self.segmentation_list.setCurrentItem(item,
-                                                  QtCore.QItemSelectionModel.SelectionFlag.Deselect)
-
-    # Function that is used to set the current slice using the text input box
-    def set_slice(self, vol, val):
-        if val == "~":
-            self.key_slice_drop_down.setCurrentText(
-                str(self.slice_slider.value()))
-        else:
-            sliceNum = int(val)
-
-            if sliceNum < 0:
-                sliceNum = vol.shape[0] + sliceNum
-            elif sliceNum > vol.shape[0] - 1:
-                sliceNum = sliceNum - vol.shape[0]
-            self.slice_index.setText(str(sliceNum))
-
-            self.slice_slider.setValue(sliceNum)
-
-    # Function that is used to navigate the slice by set amounts
-    def step_slice(self, vol, type):
-        slice_num = self.slice_slider.value()
-
-        # determining which button was clicked and incrementing the slice accourdingly
-        # if the double arrows are pressed it will move to the nearest key slice in that direction
-        # if no keyslices in that direction the slice will jump 50
-        if type == "Multi Step Decrease":
-            previous_slice = find_previous_key(slice_num,
-                                               self.lines[self.active_line])
-            if previous_slice == -1:
-                slice_num = slice_num - 50
-            else:
-                slice_num = previous_slice[0][2]
-        elif type == "Single Step Decrease":
-            slice_num = slice_num - 1
-        elif type == "Single Step Increase":
-            slice_num = slice_num + 1
-        elif type == "Multi Step Increase":
-            next_slice = find_next_key(slice_num, self.lines[self.active_line])
-            if next_slice == -1:
-                slice_num = slice_num + 50
-            else:
-                slice_num = next_slice[0][2]
-
-        # Checking for looping out of bounds
-        if slice_num < 0:
-            slice_num = vol.shape[0] + slice_num
-        elif slice_num > vol.shape[0] - 1:
-            slice_num = slice_num - vol.shape[0]
-
-        self.slice_slider.setValue(
-            slice_num)  # setting slider value and auto calling the update function
-
-    def merge_segmentations(self, vol, seg_dir):
-        # TBD
-
-        self.update_slice(vol, self.slice_slider.value())
-
+    #---------------------------Segemntation Loading/Shadows/Switching-----------------------v
     def handle_list_click(self, seg_dir, uuid):
         if uuid.checkState() == Qt.CheckState.Checked:
             if not (uuid.text() in self.lines):
@@ -580,6 +474,33 @@ class SegmentWindow(QtWidgets.QWidget):
             self.set_active(0)
             self.update_slice(self.vol, self.slice_slider.value())
 
+    # function set the slice as active
+    def set_active(self, uuid):
+        self.active_line = uuid
+        # clear the current selection
+        self.clear_selected()
+        item = self.segmentation_list.findItems(str(uuid),
+                                                Qt.MatchFlag.MatchExactly)
+        if not item:  # the list is empty meaning the segmentation is not one which was previously saved
+            self.segmentation_list.setCurrentItem(
+                self.segmentation_list.currentItem(),
+                QtCore.QItemSelectionModel.SelectionFlag.Deselect)
+        else:
+            self.segmentation_list.setCurrentItem(item[0],
+                                                  QtCore.QItemSelectionModel.SelectionFlag.Select)
+
+        # need to make sure that the key_slice_drop down matches the active seg
+        # clearing the key-slices drop down
+        self.key_slice_drop_down.clear()
+        self.key_slice_drop_down.addItem("~")
+        # filling with the key slices from the dictionary
+        for keySlice in self.lines[uuid]:
+            self.key_slice_drop_down.addItem(str(keySlice))
+
+        self.update_slice(self.vol, self.slice_slider.value())  
+
+    #-------------------------Button Functions--------------------------------
+
     # Function that save the points out ---------> needs to have the repetition fixed with the code that Bruno added
     def save_points(self, vol, seg_dir):
         if not verify_full_interpolation(self.lines[self.active_line]):
@@ -616,6 +537,22 @@ class SegmentWindow(QtWidgets.QWidget):
 
         self.update_slice(vol, self.slice_slider.value())
 
+    # undos the last point that was drawn on that slice
+    def undo_point(self, vol):
+        slice_num = self.slice_slider.value()
+        #making sure to only delete points from current page
+        if slice_num in self.lines[self.active_line]:
+            length = len(self.lines[self.active_line][slice_num])
+            if (length > 0):
+                #remove the last point drawn from the list
+                self.lines[self.active_line][slice_num].pop()
+                
+                #if there are no more points on the slice, remove the keyslice from the list
+                if (length == 1):
+                    self.lines[self.active_line].pop(slice_num)
+                
+                self.update_slice(vol, slice_num)
+
     def clear_all(self, vol):
         # deletes the dictionary slice along with its points
         self.lines[self.active_line].clear()
@@ -626,3 +563,60 @@ class SegmentWindow(QtWidgets.QWidget):
 
         self.update_slice(vol, self.slice_slider.value())
         return True
+    
+     # Deselects any selected items in the list
+    def clear_selected(self):
+        selected = self.segmentation_list.selectedItems()
+        for item in selected:
+            self.segmentation_list.setCurrentItem(item,
+                                                  QtCore.QItemSelectionModel.SelectionFlag.Deselect)
+
+    # Function that is used to set the current slice using the text input box
+    def set_slice(self, vol, val):
+        if val == "~":
+            self.key_slice_drop_down.setCurrentText(
+                str(self.slice_slider.value()))
+        else:
+            sliceNum = int(val)
+
+            if sliceNum < 0:
+                sliceNum = vol.shape[0] + sliceNum
+            elif sliceNum > vol.shape[0] - 1:
+                sliceNum = sliceNum - vol.shape[0]
+            self.slice_index.setText(str(sliceNum))
+
+            self.slice_slider.setValue(sliceNum)
+
+      # Function that is used to navigate the slice by set amounts
+    def step_slice(self, vol, type):
+        slice_num = self.slice_slider.value()
+
+        # determining which button was clicked and incrementing the slice accourdingly
+        # if the double arrows are pressed it will move to the nearest key slice in that direction
+        # if no keyslices in that direction the slice will jump 50
+        if type == "Multi Step Decrease":
+            previous_slice = find_previous_key(slice_num,
+                                               self.lines[self.active_line])
+            if previous_slice == -1:
+                slice_num = slice_num - 50
+            else:
+                slice_num = previous_slice[0][2]
+        elif type == "Single Step Decrease":
+            slice_num = slice_num - 1
+        elif type == "Single Step Increase":
+            slice_num = slice_num + 1
+        elif type == "Multi Step Increase":
+            next_slice = find_next_key(slice_num, self.lines[self.active_line])
+            if next_slice == -1:
+                slice_num = slice_num + 50
+            else:
+                slice_num = next_slice[0][2]
+
+        # Checking for looping out of bounds
+        if slice_num < 0:
+            slice_num = vol.shape[0] + slice_num
+        elif slice_num > vol.shape[0] - 1:
+            slice_num = slice_num - vol.shape[0]
+
+        self.slice_slider.setValue(
+            slice_num)  # setting slider value and auto calling the update function

@@ -44,6 +44,7 @@ class StackedWindow(QtWidgets.QWidget):
         self.window_width = 1100
         self.window_height = 900
         self.setMinimumSize(self.window_width, self.window_height)
+        self.setWindowTitle("Interpolation Segmentation")
 
         #--------------------page navigation----------------
         #implimented using stacked widgets
