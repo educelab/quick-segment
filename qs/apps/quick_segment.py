@@ -22,7 +22,7 @@ from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
 from qs.interpolation import (find_next_key, find_previous_key,
                               full_interpolation, interpolate_point,
                               verify_full_interpolation, verify_partial_interpolation, find_normal_direction, partial_interpolation)
-from qs.math import find_min
+from qs.math import find_min, find_sobel_edge
 
 
 # -------------------------------------------------------------------
@@ -370,7 +370,7 @@ class MainWindow(QtWidgets.QWidget):
 
             # drawing the interpolated points on slices between keyslices
             elif verify_partial_interpolation(int(val), lines):
-                partial_interpolation(self.ax, lines, int(val), type='linear', circle_size=circle_size)
+                partial_interpolation(self.ax, lines, int(val), type='non-linear', img=vol[val], circle_size=circle_size)
 
         self.canvas.draw_idle()
 
