@@ -181,9 +181,29 @@ class WarpWindow(QtWidgets.QWidget):
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
 
-        # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
+        # ---------------------------Matplotlib resizeing with keyboard shotcut------------
         cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
 
+        # --------------------Adding in image grid for points----------------v
+        self.draw_point_grid(vol)
+
+
+    #--------------------------Image Warping----------------------v
+    def draw_point_grid(self, vol):
+        height = int(vol.shape_y)
+        width = int(vol.shape_x)
+
+        print(type(height), " ", width)
+
+        for i in range(0, height+1, int(height/10)):
+            for j in range(0, width+1, int(width/10)):
+                self.ax.add_artist(
+                    plt.Circle([j, i], 3.5, color="yellow")
+                )
+        
+        self.canvas.draw_idle()
+    
+    #--------------------------Image Warping----------------------^
 
     #--------------------------------matplotlib GUI----------------------------v
     def insert_ax(self, vol, initial_slice):
@@ -196,6 +216,9 @@ class WarpWindow(QtWidgets.QWidget):
     def update_slice(self, vol, val):
         self.ax.clear()
         self.ax.imshow(vol[val])
+
+        #draw point grid
+        self.draw_point_grid(vol)
 
         self.ax.set_xlim(self.zoom_width)
         self.ax.set_ylim(self.zoom_height)
@@ -266,6 +289,7 @@ class WarpWindow(QtWidgets.QWidget):
                                facecolor='none', edgecolor='yellow'))
 
         self.canvas.draw_idle()
+    #--------------------------------matplotlib GUI--------------------------^
 
     #----------------------------Mouse Functions----------------------------v
      # Function to be called when the mouse is scrolled (zoom)
