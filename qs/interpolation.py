@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from qs.math import normalize_direction, calculate_sq_distance, find_sobel_edge
+from qs.math import normalized_direction, calculate_sq_distance, find_sobel_edge, inverse_vector, perpendicular_vector
 from math import sqrt
 from matplotlib import pyplot as plt
 
@@ -137,7 +137,7 @@ def full_interpolation(lines):
 
 
 #--------------------------------------------------------------
-#         NON LINEAR INTERPOLATION FUNCTIONS (for now helpers)
+#          NON LINEAR INTERPOLATION FUNCTIONS
 #--------------------------------------------------------------
 
 def find_normal_direction(point, n1, n2):
@@ -146,22 +146,25 @@ def find_normal_direction(point, n1, n2):
 
     :param point: a point which you want the normal of
     :param n1: the neighboring point
-    :param n2: the other neighboring point
+    :param n2: the other neighboring point, if none is given assign it -1, to be reassigned later
     """
-
     # Normalize the the direction vectors that point to the neighbors
-    n1 = normalize_direction(n1, point, 20)
-    n2 = normalize_direction(n2, point, 20)
+    n1 = normalized_direction(n1, point, 20)
+    n2 = normalized_direction(n2, point, 20)
 
-    pivot = [point[0] + (n1[0] + n2[0]),
-                 point[1] + (n1[1] + n2[1]),
-                 point[2] + (n1[2] + n2[2])]
+    direction = [(n1[0] + n2[0]),
+                 (n1[1] + n2[1]),
+                 (n1[2] + n2[2])]
 
-    pivot = normalize_direction(pivot, point, 30)
+    if (direction == [0,0,0]):
+        print("here?")
+        direction = perpendicular_vector(np.subtract(point, n1))
+        print(direction)
 
-    return pivot
+    return normalized_direction(direction, magnitude=40)
 
-def detect_edge_along_line(img, point, direction, magnitude=30):
+
+def detect_edge_along_line(img, point, direction, magnitude=40):
     scaled_direction = [(direction[0])/magnitude, (direction[1])/magnitude, 0]
     x = point[0]
     y = point[1]
@@ -172,13 +175,48 @@ def detect_edge_along_line(img, point, direction, magnitude=30):
     for i in range(magnitude):
         x = x + scaled_direction[0]
         y = y + scaled_direction[1]
-        if (find_sobel_edge(img, [int(x), int(y)]) >= 110000): # 110000 constant is temporary, we want to get this value form the image
+        if (find_sobel_edge(img, [int(x), int(y)]) >= 95000): # 95000 constant is temporary, we want to get this value form the image
             return [x, y, point[2]]
 
-    return [end_x, end_y, point[2]]
+    return -1 # edge not found, return -1
 
+def adjust_point_based_on_edges(img, point, neighbor_1, neighbor_2=None, magnitude=40):
+    if (neighbor_2 == None):
+        neighbor_2 = inverse_vector(neighbor_1, point)
 
-def partial_nonlinear_interpolation(ax, lines, slice, img, circle_size=0):
+    normal_direction = find_normal_direction(point, neighbor_1, neighbor_2)
+    edge_1 = detect_edge_along_line(img, point, normal_direction)
+    edge_2 = detect_edge_along_line(img, point, inverse_vector(normal_direction))
+
+    if (edge_1 == -1 or edge_2 == -1): # Either of the edges are not found, if this is the case, do not adjust point
+        midpoint = point
+    else:
+        midpoint = [(edge_1[0] + edge_2[0])/2, (edge_1[1] + edge_2[1])/2, point[2]]
+
+    return midpoint
+
+def draw_detected_edge(ax, img, point, neighbor_1, neighbor_2=None, magnitude=40):
+    if (neighbor_2 == None):
+        neighbor_2 = inverse_vector(neighbor_1, point)
+
+    normal_direction = find_normal_direction(point, neighbor_1, neighbor_2)
+    print(normal_direction)
+    edge_1 = detect_edge_along_line(img, point, normal_direction)
+    edge_2 = detect_edge_along_line(img, point, inverse_vector(normal_direction))
+
+    if (edge_1 != -1 and edge_2 != -1): 
+        ax.add_artist(
+            plt.Circle((edge_1[0], edge_1[1]), 2,
+                    facecolor='magenta'))
+        ax.add_artist(
+            plt.Circle((edge_2[0], edge_2[1]), 2,
+                    facecolor='magenta'))
+        ax.plot([point[0],edge_1[0]],
+                [point[1], edge_1[1]], color='magenta')
+        ax.plot([point[0], edge_2[0]],
+                    [point[1], edge_2[1]], color='magenta')
+
+def partial_nonlinear_interpolation(ax, lines, slice, img, draw_edges=True, circle_size=0):
     """
     Partially linearly interpolates a given slice between the two slices that
     surround it.
@@ -191,49 +229,57 @@ def partial_nonlinear_interpolation(ax, lines, slice, img, circle_size=0):
     """
     previous_key = find_previous_key(slice, lines)
     next_key = find_next_key(slice, lines)
+    relative_key = [i for i in previous_key]
+    next_relative_key = []
 
-    point = interpolate_point(slice, previous_key[0], next_key[0])
-    prev_point = point # Initialize it to the point, update later
-    for i in range(0, len(previous_key) - 1):
-        next_point = interpolate_point(slice, previous_key[i + 1], next_key[i + 1])
-        ax.plot([point[0], next_point[0]],
-                        [point[1], next_point[1]], color='yellow')
-        ax.add_artist(
-            plt.Circle((point[0], point[1]), 3.5, color='yellow'))
-        ax.add_artist(
-            plt.Circle((point[0], point[1]), circle_size,
-                        facecolor='none', edgecolor='yellow'))
+    initial_slice = previous_key[0][2] + 1
 
-        # Test find_normal
-        if i > 0:
-            normal_direction = find_normal_direction(point, prev_point, next_point)
-            edge = detect_edge_along_line(img, point, normal_direction)
-            edge_2 = detect_edge_along_line(img, point, [-1*normal_direction[0], -1*normal_direction[1], normal_direction[2]])
-            ax.add_artist(
-                plt.Circle((edge[0], edge[1]), 2,
-                        facecolor='yellow'))
-            ax.add_artist(
-                plt.Circle((edge_2[0], edge_2[1]), 2,
-                        facecolor='yellow'))
-            ax.plot([point[0],edge[0]],
-                        [point[1], edge[1]], color='yellow')
-            ax.plot([point[0], edge_2[0]],
-                        [point[1], edge_2[1]], color='yellow')
+    for i in range(initial_slice, slice):
+        next_relative_key.clear()
+        # For each intermediate slice between the previous and current
+        # Find first two points
+        point = interpolate_point(i, relative_key[0], next_key[0])
+        next_point = interpolate_point(i, relative_key[1], next_key[1])
 
+        # Adjust first point
+        next_relative_key.append(adjust_point_based_on_edges(img, point=point, neighbor_1=next_point))
 
+        # Iterate between the 2nd and penultimate point
+        for j in range(1, len(relative_key) - 1):
+            prev_point = point
+            point = next_point
+            next_point = interpolate_point(i, relative_key[j + 1], next_key[j + 1])
+
+            next_relative_key.append(adjust_point_based_on_edges(img, point=point, neighbor_1=prev_point, neighbor_2=next_point))
+
+        # Adjust last point
+        next_relative_key.append(adjust_point_based_on_edges(img, point=next_point, neighbor_1=point))
+        relative_key.clear()
+        relative_key = [p for p in next_relative_key]
+    
+    # For slice, repeat above process on last time, but this time draw it to canvas
+    point = interpolate_point(slice, relative_key[0], next_key[0])
+    next_point = interpolate_point(slice, relative_key[1], next_key[1])
+    adjusted_point = adjust_point_based_on_edges(img, point=point, neighbor_1=next_point)
+    if draw_edges: draw_detected_edge(ax, img, point=point, neighbor_1=next_point)
+    ax.add_artist(
+        plt.Circle((adjusted_point[0], adjusted_point[1]), 3.5, color='yellow'))
+
+    for j in range(1, len(relative_key) - 1):
         prev_point = point
         point = next_point
-
-    last_point = interpolate_point(slice, previous_key[-1],
-                                    next_key[-1])
-    ax.add_artist(
-        plt.Circle((last_point[0], last_point[1]), 3.5,
-                    color='yellow'))
-    ax.add_artist(
-        plt.Circle((last_point[0], last_point[1]), circle_size,
-                    facecolor='none', edgecolor='yellow'))
-
+        next_point = interpolate_point(slice, relative_key[j + 1], next_key[j + 1])
+        adjusted_point = adjust_point_based_on_edges(img, point=point, neighbor_1=prev_point, neighbor_2=next_point)
+        if draw_edges: draw_detected_edge(ax, img, point=point, neighbor_1=prev_point, neighbor_2=next_point)
+        ax.add_artist(
+            plt.Circle((adjusted_point[0], adjusted_point[1]), 3.5, color='yellow'))
     
+    adjusted_point = adjust_point_based_on_edges(img, point=next_point, neighbor_1=point)
+    if draw_edges: draw_detected_edge(ax, img, point=next_point, neighbor_1=point)
+    ax.add_artist(
+        plt.Circle((adjusted_point[0], adjusted_point[1]), 3.5, color='yellow'))
+
+
 #--------------------------------------------------------------
 #              GENERAL INTERPOLATION FUNCTIONS
 #--------------------------------------------------------------

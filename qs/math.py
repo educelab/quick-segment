@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from math import sqrt
+import numpy as np
 
 def calculate_sq_distance(p1, p2):
     return (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2 + (p2[2] - p1[2]) ** 2
-
 
 def find_min(point, line):
     min_pt = float('inf')
@@ -15,7 +15,24 @@ def find_min(point, line):
 
     return min_pt
 
-def normalize_direction(point, orig = [0,0,0], magnitude = 1):
+def inverse_vector(vec, orig=[0,0,0]):
+    """
+    Invert direction of vector based on a reference point
+    :param vec: point vector to be inverted
+    :param orig: point used as a reference for inverting, if none is given assume vec is a direction
+    """
+    return [orig[0] + (orig[0] - vec[0]), orig[1] + (orig[1] - vec[1]), vec[2]]
+
+def perpendicular_vector(vec):
+    """
+    Finds a perpendicular vector to a direction vector
+    
+    :param vec: vector we want the perpendicular of
+    """
+    perp = np.cross(vec, [0, 0, 1])
+    return [perp[0], perp[1], vec[2]]
+
+def normalized_direction(point, orig = [0,0,0], magnitude = 1):
     """ 
     Return the normalized (magnitude 1) version of a direction vector
     
@@ -23,8 +40,10 @@ def normalize_direction(point, orig = [0,0,0], magnitude = 1):
     :param orig: point with on to reference the normalization, default to 0,0,0
     :param magnitude: size to be normalized to
     """
-
     dist = sqrt(calculate_sq_distance(point, orig))
+
+    if dist == 0:
+        return [0,0,0]
 
     x = magnitude * ((point[0] - orig[0]) / dist)
     y = magnitude * ((point[1] - orig[1]) / dist)
