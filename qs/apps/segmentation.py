@@ -162,15 +162,18 @@ class SegmentWindow(QtWidgets.QWidget):
         #  - second: create button
         self.clear_all_button = QtWidgets.QPushButton()
         self.clear_all_button.setText('Clear All')
-        self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
+        self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())  
+        
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
-        # ToolBar_Layout.addLayout(Seg_layout)
+
         toolbar_layout.addWidget(self.undo_point_button)
         toolbar_layout.addWidget(self.clear_slice_button)
         toolbar_layout.addWidget(self.clear_all_button)
+
         toolbar_layout.addWidget(self.show_shadows_toggle)
+
         toolbar_layout.addWidget(self.save_button)
 
         # Pop window in case number of points is incorrect

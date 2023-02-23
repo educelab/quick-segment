@@ -1,6 +1,7 @@
 #Volume Warp Page within the GUI
 from __future__ import annotations
 
+import numpy as np
 import argparse
 import os
 import sys
@@ -23,7 +24,7 @@ from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
 from qs.interpolation import (find_next_key, find_previous_key,
                               full_interpolation, interpolate_point,
                               verify_full_interpolation, verify_interpolation)
-from qs.math import find_min
+from qs.math import (find_min, calculate_sq_distance)
 
 # -------------------------------------------------------------------
 #                             SEGMENT WINDOW CLASS
@@ -130,6 +131,17 @@ class WarpWindow(QtWidgets.QWidget):
         self.segmentation_list.itemClicked.connect(
             lambda uuid: self.handle_list_click(seg_dir, uuid))
 
+        #------buttons related to warping------v
+        # warp button
+        self.warp_button = QtWidgets.QPushButton()
+        self.warp_button.setText('Warp')
+        self.warp_button.clicked.connect(lambda: self.warp(vol, seg_dir))
+        # unwarp button
+        self.unwarp_button = QtWidgets.QPushButton()
+        self.unwarp_button.setText('Unwarp')
+        self.unwarp_button.clicked.connect(lambda: self.unwarp(vol, seg_dir))
+        #------buttons related to warping------^
+
         # save button
         self.save_button = QtWidgets.QPushButton()
         self.save_button.setText('Save Points')
@@ -158,10 +170,14 @@ class WarpWindow(QtWidgets.QWidget):
         self.clear_all_button = QtWidgets.QPushButton()
         self.clear_all_button.setText('Clear All')
         self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
+        
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
-        # ToolBar_Layout.addLayout(Seg_layout)
+
+        toolbar_layout.addWidget(self.warp_button)
+        toolbar_layout.addWidget(self.unwarp_button)
+
         toolbar_layout.addWidget(self.undo_point_button)
         toolbar_layout.addWidget(self.clear_slice_button)
         toolbar_layout.addWidget(self.clear_all_button)
@@ -178,32 +194,195 @@ class WarpWindow(QtWidgets.QWidget):
         self.zoom_width = self.init_x_zoom
         self.zoom_height = self.init_y_zoom
 
+        # #storage of moved points for warp
+        self.active_point = ([-1, -1])
+        self.gridSize = 10
+        self.allPoints = np.empty(shape=(121,2))
+        self.og_pointLoc = ([]) #list that will hold all of the moved points orignal locations
+        self.new_pointLoc = ([]) #list that will hold all of the moved points new locations
+
         # ---------------------------Segmentation Point Drawing---------------------------
-        cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
+        cidClick = self.canvas.mpl_connect('button_press_event', lambda event: self.onclick(event, vol))
 
         # ---------------------------Matplotlib resizeing with keyboard shotcut------------
         cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
 
         # --------------------Adding in image grid for points----------------v
-        self.draw_point_grid(vol)
+        self.draw_point_grid(vol, True)
 
 
     #--------------------------Image Warping----------------------v
-    def draw_point_grid(self, vol):
+    """
+    Draws the points that will be used to warp the image on the screen 
+    @param Volume
+    """
+    def draw_point_grid(self, vol, first):
         height = int(vol.shape_y)
         width = int(vol.shape_x)
+        count = 0
 
-        print(type(height), " ", width)
-
-        for i in range(0, height+1, int(height/10)):
-            for j in range(0, width+1, int(width/10)):
+        #image size 695x551 (WxH)
+        for i in range(0, width+1, int(width/self.gridSize)):
+            for j in range(0, height+1, int(height/self.gridSize)):
                 self.ax.add_artist(
-                    plt.Circle([j, i], 3.5, color="yellow")
+                    plt.Circle([i, j], 3.5, color="yellow")
                 )
-        
+                #filling array but only for the first time
+                if first :
+                    self.allPoints[count] = [i, j]
+                    count = count + 1 
+
+        # print(self.allPoints)
+
         self.canvas.draw_idle()
+
+    """
+    Warps the image based on the change in point positions
+    @param Volume
+    @param segmentation directory 
+    """
+    def warp(self, vol, seg_dir):
+        print("WAaAaaaARrrrRRppPpp")
+
+    """
+    Unwarps the previous warp to return image to og state
+    @param Volume
+    @param segmentation directory 
+    """
+    def unwarp(self, vol, seg_dir):
+        print("UNDO WAaAaaaARrrrRRppPpp")
+
+    """
+    Gets the upper and lower bounds for a given points posistion 
+    :param self
+    :param increment
+    :param pos
+    :returns lower and upper bounds
+    """
+    def getBounds(self, increment, pos):
+        mult = pos - (pos % increment)
+        return [mult, mult+increment]
+    
+    """
+    Gets the point that is the closest to the 4 surround points provided 
+    :param self
+    :param points
+    :param pos
+    :returns closest point position
+    """
+    def getClosestPoint(self, points, pos):
+        min_dist = ([pos, 999999999999]) #big number to compare against 
+        for point in points:
+            dist = calculate_sq_distance(pos, point)
+            if dist <= min_dist[1]:
+                min_dist[0] = point
+                min_dist[1] = dist
+        return min_dist[0]
+
+
+
+
     
     #--------------------------Image Warping----------------------^
+
+    #----------------------------Mouse Functions----------------------------v
+    # Function to be called when the mouse is scrolled (zoom)
+    def onScroll(self, event):
+        if event.inaxes == self.ax:
+            self.toolbar.push_current()
+            base_scale = 1.15
+            # get the current x and y limits
+            cur_xlim = self.ax.get_xlim()
+            cur_ylim = self.ax.get_ylim()
+            global_xlim = self.vol[0].shape[1]
+            global_ylim = self.vol[0].shape[0]
+
+            zoom_limit = False
+            
+            if event.button == 'up':
+                # deal with zoom in
+                scale_factor = 1/base_scale
+            elif event.button == 'down':
+                # deal with zoom out
+                if (cur_xlim[0] >= 0 and cur_ylim[0] >= 0 and 
+                    cur_xlim[1] <= global_xlim and cur_ylim[1] <= global_ylim):
+                    scale_factor = base_scale
+                else:
+                    self.ax.set_xlim(self.init_x_zoom)
+                    self.ax.set_ylim(self.init_y_zoom)
+                    self.zoom_width = self.init_x_zoom
+                    self.zoom_height = self.init_y_zoom
+                    zoom_limit = True
+            else:
+                # deal with something that should never happen
+                scale_factor = 1
+                print(event.button)
+
+            if (not zoom_limit):
+                # set new limits
+                new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
+                new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
+                
+                relx = (cur_xlim[1]-event.xdata)/(cur_xlim[1]-cur_xlim[0])
+                rely = (cur_ylim[1]-event.ydata)/(cur_ylim[1]-cur_ylim[0])
+
+                # Store zoom variables
+                self.zoom_width = [event.xdata-new_width*(1-relx), event.xdata+new_width*(relx)]
+                self.zoom_height = [event.ydata-new_height*(1-rely), event.ydata+new_height*(rely)]
+
+                self.ax.set_xlim(self.zoom_width)
+                self.ax.set_ylim(self.zoom_height)
+            
+            self.canvas.draw()
+            self.toolbar.push_current()
+
+
+    # Function to be called when the slice is clicked to add points
+    def onclick(self, event, vol):
+        if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
+            if event.button == 1:  # Left click
+                if(self.active_point[0] == -1):
+                    print("You must choose a point to move first")
+                # elif (self.active_point not in self.og_pointLoc):
+                #     print("You must choose a point to move first")
+                else:
+                    index = self.og_pointLoc.index(self.active_point) #this is changing when we move the point -> need to store its call to the original position somewhere
+                    print("Moving Point: ", self.active_point, " at index ", index)
+
+                    #moving point to where the person clicked
+                    point = ([event.xdata, event.ydata])
+                    self.new_pointLoc.insert(index, point)
+
+                    self.set_active(point)
+
+                    print(self.new_pointLoc)
+
+            
+            elif event.button == 3:  # Right click
+                slice_num = self.slice_slider.value()
+                min = 99999999
+                
+                #removing the previous point from the list if it was not changed
+                if len(self.og_pointLoc) != len(self.new_pointLoc):
+                    self.og_pointLoc.pop()
+
+                xbounds = self.getBounds(int(vol.shape_x/self.gridSize), event.xdata)
+                ybounds = self.getBounds(int(vol.shape_y/self.gridSize), event.ydata)
+                surrounding_points = ([ [xbounds[0], ybounds[0]], [xbounds[1],ybounds[0]], [xbounds[0], ybounds[1]], [xbounds[1], ybounds[1]] ])
+                
+                
+                closest_point = self.getClosestPoint(surrounding_points, [event.xdata, event.ydata])
+                
+                #set the point as active
+                self.set_active(closest_point)
+                #add point to the list of og points if not already in the list
+                if (closest_point not in self.og_pointLoc):
+                    self.og_pointLoc.append(closest_point)
+
+                print("OG Points: ", self.og_pointLoc)
+
+                self.canvas.draw_idle()
+                #self.set_active(closest_line)
 
     #--------------------------------matplotlib GUI----------------------------v
     def insert_ax(self, vol, initial_slice):
@@ -217,11 +396,23 @@ class WarpWindow(QtWidgets.QWidget):
         self.ax.clear()
         self.ax.imshow(vol[val])
 
+        #----------------warping related--------------
         #draw point grid
-        self.draw_point_grid(vol)
+        self.draw_point_grid(vol, False)
+
+        #if there is a ligit active point make it visably active
+        if self.active_point is not [-1, -1]:
+            self.ax.add_artist(
+                plt.Circle(self.active_point, 3.5, color='red'))
+            self.ax.add_artist(
+                plt.Circle(self.active_point, 7,
+                    facecolor='none', edgecolor='red'))
+
 
         self.ax.set_xlim(self.zoom_width)
         self.ax.set_ylim(self.zoom_height)
+
+
 
         # update the slice index box
         self.slice_index.setText(str(val))
@@ -291,125 +482,13 @@ class WarpWindow(QtWidgets.QWidget):
         self.canvas.draw_idle()
     #--------------------------------matplotlib GUI--------------------------^
 
-    #----------------------------Mouse Functions----------------------------v
-     # Function to be called when the mouse is scrolled (zoom)
-    def onScroll(self, event):
-        if event.inaxes == self.ax:
-            self.toolbar.push_current()
-            base_scale = 1.15
-            # get the current x and y limits
-            cur_xlim = self.ax.get_xlim()
-            cur_ylim = self.ax.get_ylim()
-            global_xlim = self.vol[0].shape[1]
-            global_ylim = self.vol[0].shape[0]
-
-            zoom_limit = False
-            
-            if event.button == 'up':
-                # deal with zoom in
-                scale_factor = 1/base_scale
-            elif event.button == 'down':
-                # deal with zoom out
-                if (cur_xlim[0] >= 0 and cur_ylim[0] >= 0 and 
-                    cur_xlim[1] <= global_xlim and cur_ylim[1] <= global_ylim):
-                    scale_factor = base_scale
-                else:
-                    self.ax.set_xlim(self.init_x_zoom)
-                    self.ax.set_ylim(self.init_y_zoom)
-                    self.zoom_width = self.init_x_zoom
-                    self.zoom_height = self.init_y_zoom
-                    zoom_limit = True
-            else:
-                # deal with something that should never happen
-                scale_factor = 1
-                print(event.button)
-
-            if (not zoom_limit):
-                # set new limits
-                new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
-                new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
-                
-                relx = (cur_xlim[1]-event.xdata)/(cur_xlim[1]-cur_xlim[0])
-                rely = (cur_ylim[1]-event.ydata)/(cur_ylim[1]-cur_ylim[0])
-
-                # Store zoom variables
-                self.zoom_width = [event.xdata-new_width*(1-relx), event.xdata+new_width*(relx)]
-                self.zoom_height = [event.ydata-new_height*(1-rely), event.ydata+new_height*(rely)]
-
-                self.ax.set_xlim(self.zoom_width)
-                self.ax.set_ylim(self.zoom_height)
-            
-            self.canvas.draw()
-            self.toolbar.push_current()
-
-
-    # Function to be called when the slice is clicked to add points
-    def onclick(self, event):
-        if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
-            if event.button == 1:  # Left click
-                slice_num = self.slice_slider.value()
-                new_point = [event.xdata, event.ydata, slice_num]
-                self.lines[self.active_line].setdefault(slice_num, []).append(
-                    new_point)
-
-                # drawing the line between the past and new point
-                if len(self.lines[self.active_line][slice_num]) > 1:
-                    prev_point = self.lines[self.active_line][slice_num][-2]
-                    self.ax.plot([prev_point[0], new_point[0]],
-                                 [prev_point[1], new_point[1]], color='red')
-
-                self.ax.add_artist(
-                    plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
-                self.ax.add_artist(
-                    plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
-                               edgecolor='red'))
-                self.canvas.draw_idle()
-
-                # on slice that has point == key slice and add it to the key slice list
-                # Find slice in lines dictionary
-                if slice_num in self.lines[self.active_line]:
-                    # if not already on list
-                    if len(self.lines[self.active_line][slice_num]) == 1:
-                        self.key_slice_drop_down.addItem(str(slice_num))
-                        self.key_slice_drop_down.setCurrentText(str(slice_num))
-            elif event.button == 3:  # Right click
-                slice_num = self.slice_slider.value()
-                min = 99999999
-                closest_line = 0
-                for uuid in self.lines:
-                    seg = self.lines[uuid]
-                    if slice_num in seg:
-                        temp_min = find_min(
-                            [event.xdata, event.ydata, slice_num],
-                            seg[slice_num])
-                        if temp_min < min:
-                            min = temp_min
-                            closest_line = uuid
-                self.set_active(closest_line)
+    
 
     #-----------------------------Segmentation Line Loading/Switching-----------------------
-    # function set the slice as active
-    def set_active(self, uuid):
-        self.active_line = uuid
-        # clear the current selection
-        self.clear_selected()
-        item = self.segmentation_list.findItems(str(uuid),
-                                                Qt.MatchFlag.MatchExactly)
-        if not item:  # the list is empty meaning the segmentation is not one which was previously saved
-            self.segmentation_list.setCurrentItem(
-                self.segmentation_list.currentItem(),
-                QtCore.QItemSelectionModel.SelectionFlag.Deselect)
-        else:
-            self.segmentation_list.setCurrentItem(item[0],
-                                                  QtCore.QItemSelectionModel.SelectionFlag.Select)
-
-        # need to make sure that the key_slice_drop down matches the active seg
-        # clearing the key-slices drop down
-        self.key_slice_drop_down.clear()
-        self.key_slice_drop_down.addItem("~")
-        # filling with the key slices from the dictionary
-        for keySlice in self.lines[uuid]:
-            self.key_slice_drop_down.addItem(str(keySlice))
+    # function set the point as active
+    def set_active(self, point):
+        
+        self.active_point = point
 
         self.update_slice(self.vol, self.slice_slider.value())
 
