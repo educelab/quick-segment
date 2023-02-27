@@ -31,8 +31,6 @@ from qs.math import find_min
 class MainWindow(QtWidgets.QWidget):
     ax = None
     bar = None
-    xAxisLim = None
-    yAxisLim = None
 
     def __init__(self, vol, seg_dir, initial_slice=0):
         super().__init__()
@@ -207,6 +205,11 @@ class MainWindow(QtWidgets.QWidget):
         self.init_y_zoom = self.ax.get_ylim()
         self.zoom_width = self.init_x_zoom
         self.zoom_height = self.init_y_zoom
+        self.xAxisLim = None
+        self.yAxisLim = None
+        self.pan_limit = False
+        self.global_xlim = self.vol[0].shape[1]
+        self.global_ylim = self.vol[0].shape[0]
 
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -412,11 +415,11 @@ class MainWindow(QtWidgets.QWidget):
         curr_xAxisLim = self.ax.get_xlim()
         curr_yAxisLim = self.ax.get_ylim()
 
-        if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
-            if event.button == 1: # Left release
-
-                # Add a point if the limits have not changed since the press action
-                if self.xAxisLim == curr_xAxisLim and self.yAxisLim == curr_yAxisLim:
+        if event.button == 1: # Left release
+            
+            # Add a point if the limits have not changed since the press action
+            if self.xAxisLim == curr_xAxisLim and self.yAxisLim == curr_yAxisLim:
+                if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
                     slice_num = self.slice_slider.value()
                     new_point = [event.xdata, event.ydata, slice_num]
                     self.lines[self.active_line].setdefault(slice_num, []).append(
@@ -462,6 +465,9 @@ class MainWindow(QtWidgets.QWidget):
                         if len(self.lines[self.active_line][slice_num]) == 1:
                             self.key_slice_drop_down.addItem(str(slice_num))
                             self.key_slice_drop_down.setCurrentText(str(slice_num))
+            else: 
+                # If pan ends up outside of bounds, move it back in
+                self.fixPan(event)
 
    
     """
@@ -472,11 +478,17 @@ class MainWindow(QtWidgets.QWidget):
     """
     def onclick(self, event):
         if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
+            self.pan_limit = False
+
             if event.button == 1: # Left click
-                # Enable pan and save current values for limits
-                self.canvas.toolbar.press_pan(event)
+                # Save current values for limits
                 self.xAxisLim = self.ax.get_xlim()
                 self.yAxisLim = self.ax.get_ylim()
+
+                if (self.xAxisLim[0] >= 0 and self.yAxisLim[1] >= 0 and 
+                self.xAxisLim[1] <= self.global_xlim and self.yAxisLim[0] <= self.global_ylim):
+                    # Enable pan
+                    self.canvas.toolbar.press_pan(event)  
 
             elif event.button == 3:  # Right click
                 slice_num = self.slice_slider.value()
@@ -492,6 +504,89 @@ class MainWindow(QtWidgets.QWidget):
                             min = temp_min
                             closest_line = uuid
                 self.set_active(closest_line)
+
+    """
+    Function that moves the image so the user cannot pan off of the screen
+    :param self 
+    :param event
+    """
+    def fixPan(self, event):
+        # Save current values
+        curr_xAxisLim = self.ax.get_xlim()
+        curr_yAxisLim = self.ax.get_ylim()
+
+        # If pan goes off the left side
+        if (curr_xAxisLim[0] < 0):
+
+            # Save difference between the side off the screen and the limit to fix the opposing side
+            xdif = 0 - curr_xAxisLim[0]
+
+            # Adjust limits
+            list_curr_xAxisLim = list(curr_xAxisLim)
+            list_curr_xAxisLim[0] = 0
+            list_curr_xAxisLim[1] += xdif
+            curr_xAxisLim = tuple(list_curr_xAxisLim)
+
+            # Reset limits
+            self.ax.set_xlim(curr_xAxisLim)
+            self.ax.set_ylim(curr_yAxisLim)
+
+        # If pan goes off the top
+        if (curr_yAxisLim[1] < 0):
+
+            # Save difference between the side off the screen and the limit to fix the opposing side
+            ydif = 0 - curr_yAxisLim[1]
+
+            # Adjust limits
+            list_curr_yAxisLim = list(curr_yAxisLim)
+            list_curr_yAxisLim[1] = 0
+            list_curr_yAxisLim[0] += ydif
+            curr_yAxisLim = tuple(list_curr_yAxisLim)
+
+            # Reset limits
+            self.ax.set_xlim(curr_xAxisLim)
+            self.ax.set_ylim(curr_yAxisLim)
+
+        # If pan goes off the right side
+        if (curr_xAxisLim[1] > self.global_xlim):
+
+            # Save difference between the side off the screen and the limit to fix the opposing side
+            xdif = curr_xAxisLim[1] - self.global_xlim
+
+            # Adjust limits
+            list_curr_xAxisLim = list(curr_xAxisLim)
+            list_curr_xAxisLim[1] = self.global_xlim
+            list_curr_xAxisLim[0] -= xdif
+            curr_xAxisLim = tuple(list_curr_xAxisLim)
+
+            # Reset limits
+            self.ax.set_xlim(curr_xAxisLim)
+            self.ax.set_ylim(curr_yAxisLim)
+
+        # If pan goes off the bottom
+        if (curr_yAxisLim[0] > self.global_ylim):
+
+            # Save difference between the side off the screen and the limit to fix the opposing side
+            ydif = curr_yAxisLim[0] - self.global_ylim
+
+            # Adjust limits
+            list_curr_yAxisLim = list(curr_yAxisLim)
+            list_curr_yAxisLim[0] = self.global_ylim
+            list_curr_yAxisLim[1] -= ydif
+            curr_yAxisLim = tuple(list_curr_yAxisLim)
+
+            # Reset limits
+            self.ax.set_xlim(curr_xAxisLim)
+            self.ax.set_ylim(curr_yAxisLim)
+        
+        # Redraw canvas
+        self.canvas.draw()
+        self.toolbar.push_current()
+
+        # Store zoom variables
+        self.zoom_width = curr_xAxisLim
+        self.zoom_height = curr_yAxisLim
+
 
     # function set the slice as active
     def set_active(self, uuid):
