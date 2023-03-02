@@ -157,9 +157,7 @@ def find_normal_direction(point, n1, n2):
                  (n1[2] + n2[2])]
 
     if (direction == [0,0,0]):
-        print("here?")
-        direction = perpendicular_vector(np.subtract(point, n1))
-        print(direction)
+        direction = perpendicular_vector(n1)
 
     return normalized_direction(direction, magnitude=40)
 
@@ -200,7 +198,6 @@ def draw_detected_edge(ax, img, point, neighbor_1, neighbor_2=None, magnitude=40
         neighbor_2 = inverse_vector(neighbor_1, point)
 
     normal_direction = find_normal_direction(point, neighbor_1, neighbor_2)
-    print(normal_direction)
     edge_1 = detect_edge_along_line(img, point, normal_direction)
     edge_2 = detect_edge_along_line(img, point, inverse_vector(normal_direction))
 
@@ -330,7 +327,7 @@ def partial_interpolation(ax, lines, slice, type='linear', img=None, circle_size
 
     if type == 'linear':
         partial_linear_interpolation(ax, lines, slice, circle_size)
-    if type == 'non-linear':
+    elif type == 'non-linear':
         partial_nonlinear_interpolation(ax, lines, slice, img, circle_size)
     else:
         print("Not accepted interpolation type")

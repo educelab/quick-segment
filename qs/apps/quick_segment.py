@@ -141,6 +141,12 @@ class MainWindow(QtWidgets.QWidget):
         # Seg_layout.addWidget(self.seg_load_button)
         # Seg_layout.addWidget(self.seg_merge)
 
+        # Interpolation type dropdown
+        self.interpolation_type_drop_down = QtWidgets.QComboBox()
+        self.interpolation_type_drop_down.addItems(["linear", "non-linear"])
+        self.interpolation_type_drop_down.activated.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        
         # save button
         self.save_button = QtWidgets.QPushButton()
         self.save_button.setText('Save Points')
@@ -177,11 +183,15 @@ class MainWindow(QtWidgets.QWidget):
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
-        # ToolBar_Layout.addLayout(Seg_layout)
         toolbar_layout.addWidget(self.undo_point_button)
         toolbar_layout.addWidget(self.clear_slice_button)
         toolbar_layout.addWidget(self.clear_all_button)
         toolbar_layout.addWidget(self.show_shadows_toggle)
+        # Interpolation type label-dropdown pair
+        interpolation_type_layout = QtWidgets.QHBoxLayout()
+        interpolation_type_layout.addWidget(QtWidgets.QLabel("Interpolation type:"))
+        interpolation_type_layout.addWidget(self.interpolation_type_drop_down)
+        toolbar_layout.addLayout(interpolation_type_layout)
         toolbar_layout.addWidget(self.save_button)
 
         # Pop window in case number of points is incorrect
@@ -370,7 +380,7 @@ class MainWindow(QtWidgets.QWidget):
 
             # drawing the interpolated points on slices between keyslices
             elif verify_partial_interpolation(int(val), lines):
-                partial_interpolation(self.ax, lines, int(val), type='non-linear', img=vol[val], circle_size=circle_size)
+                partial_interpolation(self.ax, lines, int(val), type=self.interpolation_type_drop_down.currentText(), img=vol[val], circle_size=circle_size)
 
         self.canvas.draw_idle()
 
