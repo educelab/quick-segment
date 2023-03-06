@@ -183,15 +183,26 @@ class MainWindow(QtWidgets.QWidget):
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
-        toolbar_layout.addWidget(self.undo_point_button)
-        toolbar_layout.addWidget(self.clear_slice_button)
-        toolbar_layout.addWidget(self.clear_all_button)
-        toolbar_layout.addWidget(self.show_shadows_toggle)
+        
+        segmentation_options = QtWidgets.QGroupBox()
+        segmentation_opt_layout = QtWidgets.QVBoxLayout()
+        segmentation_options.setLayout(segmentation_opt_layout)
+        segmentation_opt_layout.addWidget(self.undo_point_button)
+        segmentation_opt_layout.addWidget(self.clear_slice_button)
+        segmentation_opt_layout.addWidget(self.clear_all_button)
+        segmentation_opt_layout.addWidget(self.show_shadows_toggle)
+        toolbar_layout.addWidget(segmentation_options)
+
+        interpolation_options = QtWidgets.QGroupBox()
+        interpolation_opt_layout = QtWidgets.QVBoxLayout()
+        interpolation_options.setLayout(interpolation_opt_layout)
         # Interpolation type label-dropdown pair
         interpolation_type_layout = QtWidgets.QHBoxLayout()
         interpolation_type_layout.addWidget(QtWidgets.QLabel("Interpolation type:"))
         interpolation_type_layout.addWidget(self.interpolation_type_drop_down)
-        toolbar_layout.addLayout(interpolation_type_layout)
+        interpolation_opt_layout.addLayout(interpolation_type_layout)
+
+        toolbar_layout.addWidget(interpolation_options)
         toolbar_layout.addWidget(self.save_button)
 
         # Pop window in case number of points is incorrect
@@ -388,6 +399,8 @@ class MainWindow(QtWidgets.QWidget):
     def onclick(self, event):
         if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
             if event.button == 1:  # Left click
+                print(find_sobel_edge(self.vol[self.slice_slider.value()], [int(event.xdata), int(event.ydata)]))
+
                 slice_num = self.slice_slider.value()
                 new_point = [event.xdata, event.ydata, slice_num]
                 self.lines[self.active_line].setdefault(slice_num, []).append(

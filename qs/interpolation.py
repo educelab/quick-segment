@@ -173,7 +173,7 @@ def detect_edge_along_line(img, point, direction, magnitude=40):
     for i in range(magnitude):
         x = x + scaled_direction[0]
         y = y + scaled_direction[1]
-        if (find_sobel_edge(img, [int(x), int(y)]) >= 95000): # 95000 constant is temporary, we want to get this value form the image
+        if (find_sobel_edge(img, [int(x), int(y)]) >= 310000): # 95000 constant is temporary, we want to get this value form the image
             return [x, y, point[2]]
 
     return -1 # edge not found, return -1
