@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 import cv2 as cv
 import numpy as np
-from qs.math import find_sobel_edge, edge_detection_img
+from qs.math import find_sobel_edge
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
