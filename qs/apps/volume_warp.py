@@ -195,11 +195,11 @@ class WarpWindow(QtWidgets.QWidget):
         self.zoom_height = self.init_y_zoom
 
         # #storage of moved points for warp
-        self.active_point = ([-1, -1])
+        self.active_point = ([-1, -1, -1, -1])
         self.gridSize = 10
         self.allPoints = np.empty(shape=(121,2))
-        self.og_pointLoc = ([]) #list that will hold all of the moved points orignal locations
-        self.new_pointLoc = ([]) #list that will hold all of the moved points new locations
+        self.pointLoc = ([]) #list that will hold all of the og and moved points locations
+        
 
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', lambda event: self.onclick(event, vol))
@@ -212,11 +212,11 @@ class WarpWindow(QtWidgets.QWidget):
 
 
     #--------------------------Image Warping----------------------v
-    """
-    Draws the points that will be used to warp the image on the screen 
-    @param Volume
-    """
     def draw_point_grid(self, vol, first):
+        """
+        Draws the points that will be used to warp the image on the screen 
+        @param Volume
+        """
         height = int(vol.shape_y)
         width = int(vol.shape_x)
         count = 0
@@ -236,41 +236,45 @@ class WarpWindow(QtWidgets.QWidget):
 
         self.canvas.draw_idle()
 
-    """
-    Warps the image based on the change in point positions
-    @param Volume
-    @param segmentation directory 
-    """
+   
     def warp(self, vol, seg_dir):
+        """
+        Warps the image based on the change in point positions
+        @param Volume
+        @param segmentation directory 
+        """
         print("WAaAaaaARrrrRRppPpp")
 
-    """
-    Unwarps the previous warp to return image to og state
-    @param Volume
-    @param segmentation directory 
-    """
+    
     def unwarp(self, vol, seg_dir):
+        """
+        Unwarps the previous warp to return image to og state
+        @param Volume
+        @param segmentation directory 
+        """
         print("UNDO WAaAaaaARrrrRRppPpp")
 
-    """
-    Gets the upper and lower bounds for a given points posistion 
-    :param self
-    :param increment
-    :param pos
-    :returns lower and upper bounds
-    """
+    
     def getBounds(self, increment, pos):
+        """
+        Gets the upper and lower bounds for a given points posistion 
+        :param self
+        :param increment
+        :param pos
+        :returns lower and upper bounds
+        """
         mult = pos - (pos % increment)
         return [mult, mult+increment]
     
-    """
-    Gets the point that is the closest to the 4 surround points provided 
-    :param self
-    :param points
-    :param pos
-    :returns closest point position
-    """
+   
     def getClosestPoint(self, points, pos):
+        """
+        Gets the point that is the closest to the 4 surround points provided 
+        :param self
+        :param points
+        :param pos
+        :returns closest point position
+        """
         min_dist = ([pos, 999999999999]) #big number to compare against 
         for point in points:
             dist = calculate_sq_distance(pos, point)
@@ -343,28 +347,26 @@ class WarpWindow(QtWidgets.QWidget):
             if event.button == 1:  # Left click
                 if(self.active_point[0] == -1):
                     print("You must choose a point to move first")
-                # elif (self.active_point not in self.og_pointLoc):
-                #     print("You must choose a point to move first")
                 else:
-                    index = self.og_pointLoc.index(self.active_point) #this is changing when we move the point -> need to store its call to the original position somewhere
-                    print("Moving Point: ", self.active_point, " at index ", index)
+                    index = self.pointLoc.index(self.active_point)
+                    print("Moving Point: ", self.active_point)
 
                     #moving point to where the person clicked
                     point = ([event.xdata, event.ydata])
-                    self.new_pointLoc.insert(index, point)
+                    
+                    self.pointLoc[index][2] = point[0]
+                    self.pointLoc[index][3] = point[1]
 
-                    self.set_active(point)
 
-                    print(self.new_pointLoc)
+                    self.set_active(1, point)
 
             
             elif event.button == 3:  # Right click
                 slice_num = self.slice_slider.value()
-                min = 99999999
                 
-                #removing the previous point from the list if it was not changed
-                if len(self.og_pointLoc) != len(self.new_pointLoc):
-                    self.og_pointLoc.pop()
+                # #removing the previous point from the list if it was not changed
+                # if len(self.pointLoc) != len(self.pointLoc):
+                #     self.og_pointLoc.pop()
 
                 xbounds = self.getBounds(int(vol.shape_x/self.gridSize), event.xdata)
                 ybounds = self.getBounds(int(vol.shape_y/self.gridSize), event.ydata)
@@ -374,12 +376,26 @@ class WarpWindow(QtWidgets.QWidget):
                 closest_point = self.getClosestPoint(surrounding_points, [event.xdata, event.ydata])
                 
                 #set the point as active
-                self.set_active(closest_point)
-                #add point to the list of og points if not already in the list
-                if (closest_point not in self.og_pointLoc):
-                    self.og_pointLoc.append(closest_point)
+                self.set_active(0, closest_point) #og point position
+                self.set_active(1, closest_point) #moved point position
+                
+                if(len(self.pointLoc) == 0):
+                    self.pointLoc.append(self.active_point.copy())
+                else:
+                    found = False
+                    #add point to the list of og points if not already in the list
+                    for sublist in self.pointLoc:
+                        print("Points List: ", sublist)
+                        print("Active Point: ", self.active_point)
+                        if ((self.active_point[0] == sublist[0]) and (self.active_point[1] == sublist[1])):
+                            print("found'em")
+                            found = True
+                    if not found:
+                        print("Not in list")
+                        self.pointLoc.append(self.active_point)
+                
 
-                print("OG Points: ", self.og_pointLoc)
+                print("Moved Points: ", self.pointLoc)
 
                 self.canvas.draw_idle()
                 #self.set_active(closest_line)
@@ -401,11 +417,11 @@ class WarpWindow(QtWidgets.QWidget):
         self.draw_point_grid(vol, False)
 
         #if there is a ligit active point make it visably active
-        if self.active_point is not [-1, -1]:
+        if self.active_point[0] != -1:
             self.ax.add_artist(
-                plt.Circle(self.active_point, 3.5, color='red'))
+                plt.Circle([self.active_point[2], self.active_point[3]], 3.5, color='red'))
             self.ax.add_artist(
-                plt.Circle(self.active_point, 7,
+                plt.Circle([self.active_point[2], self.active_point[3]], 7,
                     facecolor='none', edgecolor='red'))
 
 
@@ -486,9 +502,13 @@ class WarpWindow(QtWidgets.QWidget):
 
     #-----------------------------Segmentation Line Loading/Switching-----------------------
     # function set the point as active
-    def set_active(self, point):
-        
-        self.active_point = point
+    def set_active(self, pos, point):
+        if pos == 0:
+            self.active_point[0] = point[0]
+            self.active_point[1] = point[1]
+        elif pos == 1:
+            self.active_point[2] = point[0]
+            self.active_point[3] = point[1]
 
         self.update_slice(self.vol, self.slice_slider.value())
 
