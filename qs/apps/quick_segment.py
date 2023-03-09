@@ -22,6 +22,7 @@ from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
 from qs.interpolation import (find_next_key, find_previous_key,
                               full_interpolation, interpolate_point,
                               verify_full_interpolation, verify_partial_interpolation, find_normal_direction, partial_interpolation)
+from qs.popups import MyPopup
 from qs.math import find_min, find_sobel_edge, canny_edge
 
 
@@ -178,6 +179,11 @@ class MainWindow(QtWidgets.QWidget):
         interpolation_type_layout = QtWidgets.QHBoxLayout()
         interpolation_type_layout.addWidget(QtWidgets.QLabel("Interpolation type:"))
         interpolation_type_layout.addWidget(self.interpolation_type_drop_down)
+
+        # Interpolation advanced settings pop up
+        self.advanced_settings_button = QtWidgets.QPushButton()
+        self.advanced_settings_button.setText('Advanced Settings')
+        self.advanced_settings_button.clicked.connect(lambda: self.popup_advanced_settings())
 
         # Show Canny edges button
         self.show_edges_check = QtWidgets.QCheckBox("Show Canny Edges")
@@ -673,6 +679,11 @@ class MainWindow(QtWidgets.QWidget):
 
         self.update_slice(vol, self.slice_slider.value())
         return True
+    
+    def popup_advanced_settings(self):
+        self.advanced_settings_popup = MyPopup(self.vol[self.slice_slider.value()])
+        self.advanced_settings_popup.show()
+        
 
 
 # -----------------------------------------------------------------
