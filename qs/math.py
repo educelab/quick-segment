@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from math import sqrt
 import numpy as np
+import cv2 as cv
 
 def calculate_sq_distance(p1, p2):
     return (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2 + (p2[2] - p1[2]) ** 2
@@ -81,3 +82,32 @@ def find_sobel_edge(img, point):
             h_edge += pixel * horizontal_edge_filter[i + 2][j + 2]
 
     return max(v_edge, h_edge)
+
+def sobel_edge_detection_img(image):
+    """
+    Finds Sobel edges for all pixels in image
+    
+    :param img: image to be used
+    """
+    new_img = np.full_like(image, 1)
+    for row in range(3, image.shape[0] - 3):
+        for pixel in range(3, image.shape[1] - 3):
+            new_img[row][pixel] = find_sobel_edge(image, [pixel, row])
+    
+    return new_img
+
+def canny_edge(image, t1=100, t2=120):
+    """
+    Wrapper around OpenCV's canny edge detection to convert nparray to the 
+    right format and normalize it between 0 and 255 before sending to the
+    canny edge detection
+
+    :param img: image to be used
+    :param t1: threshold 1 for the edge detection
+    :param t2: threhold 2 for the edge detection
+    """
+    img = image.astype('float64')
+    img *= (255.0/img.max())
+    img = np.uint8(img)
+
+    return cv.Canny(image=img, threshold1=t1, threshold2=t2)

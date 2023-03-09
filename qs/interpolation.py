@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from qs.math import normalized_direction, calculate_sq_distance, find_sobel_edge, inverse_vector, perpendicular_vector
+from qs.math import normalized_direction, calculate_sq_distance, find_sobel_edge, inverse_vector, perpendicular_vector, canny_edge
 from math import sqrt
 from matplotlib import pyplot as plt
 
@@ -162,7 +162,7 @@ def find_normal_direction(point, n1, n2):
     return normalized_direction(direction, magnitude=40)
 
 
-def detect_edge_along_line(img, point, direction, magnitude=40):
+def detect_edge_along_line(edge_data, point, direction, magnitude=40):
     scaled_direction = [(direction[0])/magnitude, (direction[1])/magnitude, 0]
     x = point[0]
     y = point[1]
@@ -173,18 +173,18 @@ def detect_edge_along_line(img, point, direction, magnitude=40):
     for i in range(magnitude):
         x = x + scaled_direction[0]
         y = y + scaled_direction[1]
-        if (find_sobel_edge(img, [int(x), int(y)]) >= 310000): # 95000 constant is temporary, we want to get this value form the image
+        if (edge_data[int(y)][int(x)] >= 10): # 95000 constant is temporary, we want to get this value form the image
             return [x, y, point[2]]
 
     return -1 # edge not found, return -1
 
-def adjust_point_based_on_edges(img, point, neighbor_1, neighbor_2=None, magnitude=40):
+def adjust_point_based_on_edges(edge_data, point, neighbor_1, neighbor_2=None, magnitude=40):
     if (neighbor_2 == None):
         neighbor_2 = inverse_vector(neighbor_1, point)
 
     normal_direction = find_normal_direction(point, neighbor_1, neighbor_2)
-    edge_1 = detect_edge_along_line(img, point, normal_direction)
-    edge_2 = detect_edge_along_line(img, point, inverse_vector(normal_direction))
+    edge_1 = detect_edge_along_line(edge_data, point, normal_direction)
+    edge_2 = detect_edge_along_line(edge_data, point, inverse_vector(normal_direction))
 
     if (edge_1 == -1 or edge_2 == -1): # Either of the edges are not found, if this is the case, do not adjust point
         midpoint = point
@@ -193,13 +193,13 @@ def adjust_point_based_on_edges(img, point, neighbor_1, neighbor_2=None, magnitu
 
     return midpoint
 
-def draw_detected_edge(ax, img, point, neighbor_1, neighbor_2=None, magnitude=40):
+def draw_detected_edge(ax, edge_data, point, neighbor_1, neighbor_2=None, magnitude=40):
     if (neighbor_2 == None):
         neighbor_2 = inverse_vector(neighbor_1, point)
 
     normal_direction = find_normal_direction(point, neighbor_1, neighbor_2)
-    edge_1 = detect_edge_along_line(img, point, normal_direction)
-    edge_2 = detect_edge_along_line(img, point, inverse_vector(normal_direction))
+    edge_1 = detect_edge_along_line(edge_data, point, normal_direction)
+    edge_2 = detect_edge_along_line(edge_data, point, inverse_vector(normal_direction))
 
     if (edge_1 != -1 and edge_2 != -1): 
         ax.add_artist(
@@ -213,7 +213,7 @@ def draw_detected_edge(ax, img, point, neighbor_1, neighbor_2=None, magnitude=40
         ax.plot([point[0], edge_2[0]],
                     [point[1], edge_2[1]], color='magenta')
 
-def partial_nonlinear_interpolation(ax, lines, slice, img, draw_edges=True, circle_size=0):
+def partial_nonlinear_interpolation(ax, lines, slice, vol, draw_edges=True, edge_threshold1=100, edge_threshold2=120, circle_size=0):
     """
     Partially linearly interpolates a given slice between the two slices that
     surround it.
@@ -221,7 +221,7 @@ def partial_nonlinear_interpolation(ax, lines, slice, img, draw_edges=True, circ
     :param ax: the ax on which to draw interpolation
     :param lines: the segmentation lines
     :param slice: slice where the interpolation is drawn
-    :param img: image of the slice used to calculate edges
+    :param vol: images of the slices used to calculate edges
     :param circle_size: the circle that indicates if the line is active (0 if not, 7 if active)
     """
     previous_key = find_previous_key(slice, lines)
@@ -234,12 +234,14 @@ def partial_nonlinear_interpolation(ax, lines, slice, img, draw_edges=True, circ
     for i in range(initial_slice, slice):
         next_relative_key.clear()
         # For each intermediate slice between the previous and current
+        # Get edge information
+        edge_data = canny_edge(vol[slice], edge_threshold1, edge_threshold2)
         # Find first two points
         point = interpolate_point(i, relative_key[0], next_key[0])
         next_point = interpolate_point(i, relative_key[1], next_key[1])
 
         # Adjust first point
-        next_relative_key.append(adjust_point_based_on_edges(img, point=point, neighbor_1=next_point))
+        next_relative_key.append(adjust_point_based_on_edges(edge_data, point=point, neighbor_1=next_point))
 
         # Iterate between the 2nd and penultimate point
         for j in range(1, len(relative_key) - 1):
@@ -247,18 +249,19 @@ def partial_nonlinear_interpolation(ax, lines, slice, img, draw_edges=True, circ
             point = next_point
             next_point = interpolate_point(i, relative_key[j + 1], next_key[j + 1])
 
-            next_relative_key.append(adjust_point_based_on_edges(img, point=point, neighbor_1=prev_point, neighbor_2=next_point))
+            next_relative_key.append(adjust_point_based_on_edges(edge_data, point=point, neighbor_1=prev_point, neighbor_2=next_point))
 
         # Adjust last point
-        next_relative_key.append(adjust_point_based_on_edges(img, point=next_point, neighbor_1=point))
+        next_relative_key.append(adjust_point_based_on_edges(edge_data, point=next_point, neighbor_1=point))
         relative_key.clear()
         relative_key = [p for p in next_relative_key]
     
-    # For slice, repeat above process on last time, but this time draw it to canvas
+    # For last slice, repeat above process on last time, but this time draw it to canvas
+    edge_data = canny_edge(vol[slice], edge_threshold1, edge_threshold2)
     point = interpolate_point(slice, relative_key[0], next_key[0])
     next_point = interpolate_point(slice, relative_key[1], next_key[1])
-    adjusted_point = adjust_point_based_on_edges(img, point=point, neighbor_1=next_point)
-    if draw_edges: draw_detected_edge(ax, img, point=point, neighbor_1=next_point)
+    adjusted_point = adjust_point_based_on_edges(edge_data, point=point, neighbor_1=next_point)
+    if draw_edges: draw_detected_edge(ax, edge_data, point=point, neighbor_1=next_point)
     ax.add_artist(
         plt.Circle((adjusted_point[0], adjusted_point[1]), 3.5, color='yellow'))
 
@@ -266,13 +269,13 @@ def partial_nonlinear_interpolation(ax, lines, slice, img, draw_edges=True, circ
         prev_point = point
         point = next_point
         next_point = interpolate_point(slice, relative_key[j + 1], next_key[j + 1])
-        adjusted_point = adjust_point_based_on_edges(img, point=point, neighbor_1=prev_point, neighbor_2=next_point)
-        if draw_edges: draw_detected_edge(ax, img, point=point, neighbor_1=prev_point, neighbor_2=next_point)
+        adjusted_point = adjust_point_based_on_edges(edge_data, point=point, neighbor_1=prev_point, neighbor_2=next_point)
+        if draw_edges: draw_detected_edge(ax, edge_data, point=point, neighbor_1=prev_point, neighbor_2=next_point)
         ax.add_artist(
             plt.Circle((adjusted_point[0], adjusted_point[1]), 3.5, color='yellow'))
     
-    adjusted_point = adjust_point_based_on_edges(img, point=next_point, neighbor_1=point)
-    if draw_edges: draw_detected_edge(ax, img, point=next_point, neighbor_1=point)
+    adjusted_point = adjust_point_based_on_edges(edge_data, point=next_point, neighbor_1=point)
+    if draw_edges: draw_detected_edge(ax, edge_data, point=next_point, neighbor_1=point)
     ax.add_artist(
         plt.Circle((adjusted_point[0], adjusted_point[1]), 3.5, color='yellow'))
 
@@ -314,20 +317,20 @@ def verify_full_interpolation(lines):
     return True
 
 # INTERPOLATION FUNCTIONS -------------------------------------
-def partial_interpolation(ax, lines, slice, type='linear', img=None, circle_size=0):
+def partial_interpolation(ax, lines, slice, type='linear', vol=None, draw_edges=True, edge_threshold1=100, edge_threshold2=120, circle_size=0):
     """
     Interpolates all points in a line between two slices
     
     :param ax: the ax on which to draw interpolation
     :param lines: the segmentation lines
     :param type: the type of interpolation to be carried out (linear or non-linear)
-    :param img: image of the slice used to calculate edges
+    :param vol: images of the slices used to calculate edges
     :param circle_size: the circle that indicates if the line is active (0 if not, 7 if active)
     """
 
     if type == 'linear':
         partial_linear_interpolation(ax, lines, slice, circle_size)
-    elif type == 'non-linear':
-        partial_nonlinear_interpolation(ax, lines, slice, img, circle_size)
+    elif type == 'non-linear' and vol != None:
+        partial_nonlinear_interpolation(ax, lines, slice, vol, draw_edges=draw_edges, edge_threshold1=edge_threshold1, edge_threshold2=edge_threshold2, circle_size=circle_size)
     else:
         print("Not accepted interpolation type")

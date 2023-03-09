@@ -22,7 +22,7 @@ from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
 from qs.interpolation import (find_next_key, find_previous_key,
                               full_interpolation, interpolate_point,
                               verify_full_interpolation, verify_partial_interpolation, find_normal_direction, partial_interpolation)
-from qs.math import find_min, find_sobel_edge
+from qs.math import find_min, find_sobel_edge, canny_edge
 
 
 # -------------------------------------------------------------------
@@ -128,25 +128,13 @@ class MainWindow(QtWidgets.QWidget):
         slice_layout.addLayout(step_layout)
 
         # -----------------------------Tool Bar Layout-------------------------------
-        # segmentation loader
+        # segmentation loader -------------------------------------------------------
         self.segmentation_list = QtWidgets.QListWidget()
         fill_seg_list(self, vol, seg_dir, self.segmentation_list)
         self.segmentation_list.itemClicked.connect(
             lambda uuid: self.handle_list_click(seg_dir, uuid))
-
-        # Segmentation load button
-        # Seg_layout = QtWidgets.QHBoxLayout()
-        # self.seg_merge = QtWidgets.QPushButton('Merge')
-        # self.seg_merge.clicked.connect(lambda: self.merge_segmentations(vol, seg_dir))
-        # Seg_layout.addWidget(self.seg_load_button)
-        # Seg_layout.addWidget(self.seg_merge)
-
-        # Interpolation type dropdown
-        self.interpolation_type_drop_down = QtWidgets.QComboBox()
-        self.interpolation_type_drop_down.addItems(["linear", "non-linear"])
-        self.interpolation_type_drop_down.activated.connect(
-            lambda: self.update_slice(vol, self.slice_slider.value()))
         
+        # Segmentation settings -----------------------------------------------------
         # save button
         self.save_button = QtWidgets.QPushButton()
         self.save_button.setText('Save Points')
@@ -180,6 +168,47 @@ class MainWindow(QtWidgets.QWidget):
         self.clear_all_button = QtWidgets.QPushButton()
         self.clear_all_button.setText('Clear All')
         self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
+
+        # interpolation settings ---------------------------------------------------
+        # Interpolation type dropdown
+        self.interpolation_type_drop_down = QtWidgets.QComboBox()
+        self.interpolation_type_drop_down.addItems(["linear", "non-linear"])
+        self.interpolation_type_drop_down.activated.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        interpolation_type_layout = QtWidgets.QHBoxLayout()
+        interpolation_type_layout.addWidget(QtWidgets.QLabel("Interpolation type:"))
+        interpolation_type_layout.addWidget(self.interpolation_type_drop_down)
+
+        # Show Canny edges button
+        self.show_edges_check = QtWidgets.QCheckBox("Show Canny Edges")
+        self.show_edges_check.setChecked(False)
+        self.show_edges_check.stateChanged.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        
+        # Draw Normals
+        self.draw_normals = QtWidgets.QCheckBox("Draw normals")
+        self.draw_normals.setChecked(True)
+        self.draw_normals.stateChanged.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        
+        #Edge thresholds 
+        self.edge_threshold1 = QtWidgets.QLineEdit()
+        self.edge_threshold1.setMaxLength(5)
+        self.edge_threshold1.setText("100")
+        self.edge_threshold1.returnPressed.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        edge_threshold1_layout = QtWidgets.QHBoxLayout()
+        edge_threshold1_layout.addWidget(QtWidgets.QLabel("Lower edge threshold:"))
+        edge_threshold1_layout.addWidget(self.edge_threshold1)
+        self.edge_threshold2 = QtWidgets.QLineEdit()
+        self.edge_threshold2.setMaxLength(5)
+        self.edge_threshold2.setText("120")
+        self.edge_threshold2.returnPressed.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        edge_threshold2_layout = QtWidgets.QHBoxLayout()
+        edge_threshold2_layout.addWidget(QtWidgets.QLabel("Higher edge threshold:"))
+        edge_threshold2_layout.addWidget(self.edge_threshold2)
+
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
@@ -197,10 +226,11 @@ class MainWindow(QtWidgets.QWidget):
         interpolation_opt_layout = QtWidgets.QVBoxLayout()
         interpolation_options.setLayout(interpolation_opt_layout)
         # Interpolation type label-dropdown pair
-        interpolation_type_layout = QtWidgets.QHBoxLayout()
-        interpolation_type_layout.addWidget(QtWidgets.QLabel("Interpolation type:"))
-        interpolation_type_layout.addWidget(self.interpolation_type_drop_down)
         interpolation_opt_layout.addLayout(interpolation_type_layout)
+        interpolation_opt_layout.addLayout(edge_threshold1_layout)
+        interpolation_opt_layout.addLayout(edge_threshold2_layout)
+        interpolation_opt_layout.addWidget(self.draw_normals)
+        interpolation_opt_layout.addWidget(self.show_edges_check)
 
         toolbar_layout.addWidget(interpolation_options)
         toolbar_layout.addWidget(self.save_button)
@@ -330,7 +360,10 @@ class MainWindow(QtWidgets.QWidget):
     # Loads the slice and its points
     def update_slice(self, vol, val):
         self.ax.clear()
-        self.ax.imshow(vol[val])
+        if (self.show_edges_check.isChecked()):
+            self.ax.imshow(canny_edge(vol[val], int(self.edge_threshold1.text()), int(self.edge_threshold2.text())))
+        else:
+            self.ax.imshow(vol[val])
 
         # Set the zoom
         self.ax.set_xlim(self.zoom_width)
@@ -391,7 +424,14 @@ class MainWindow(QtWidgets.QWidget):
 
             # drawing the interpolated points on slices between keyslices
             elif verify_partial_interpolation(int(val), lines):
-                partial_interpolation(self.ax, lines, int(val), type=self.interpolation_type_drop_down.currentText(), img=vol[val], circle_size=circle_size)
+                partial_interpolation(self.ax, lines, int(val), 
+                                      type=self.interpolation_type_drop_down.currentText(), 
+                                      vol=vol,
+                                      draw_edges=self.draw_normals.isChecked(),
+                                      edge_threshold1=int(self.edge_threshold1.text()), 
+                                      edge_threshold2=int(self.edge_threshold2.text()), 
+                                      circle_size=circle_size
+                                      )
 
         self.canvas.draw_idle()
 
