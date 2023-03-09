@@ -6,11 +6,13 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox
 from matplotlib import pyplot as plt
+from matplotlib import cm, colors
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
 
@@ -171,20 +173,28 @@ class MainWindow(QtWidgets.QWidget):
         self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
 
         # interpolation settings ---------------------------------------------------
+        interpolation_options = QtWidgets.QGroupBox()
+        interpolation_opt_layout = QtWidgets.QVBoxLayout()
+        interpolation_options.setLayout(interpolation_opt_layout)
+        nonlinear_settings = QtWidgets.QFrame()
+        nonlinear_settings_layout = QtWidgets.QVBoxLayout()
+        nonlinear_settings.setLayout(nonlinear_settings_layout)
+
         # Interpolation type dropdown
-        self.interpolation_type_drop_down = QtWidgets.QComboBox()
-        self.interpolation_type_drop_down.addItems(["linear", "non-linear"])
-        self.interpolation_type_drop_down.activated.connect(
-            lambda: self.update_slice(vol, self.slice_slider.value()))
+        self.interpolation_type_dropdown = QtWidgets.QComboBox()
+        self.interpolation_type_dropdown.addItems(["linear", "non-linear"])
+        self.interpolation_type_dropdown.activated.connect(
+            lambda: self.interpolation_type_dropdown_handler(nonlinear_settings))
         interpolation_type_layout = QtWidgets.QHBoxLayout()
         interpolation_type_layout.addWidget(QtWidgets.QLabel("Interpolation type:"))
-        interpolation_type_layout.addWidget(self.interpolation_type_drop_down)
+        interpolation_type_layout.addWidget(self.interpolation_type_dropdown)
 
         # Interpolation advanced settings pop up
         self.advanced_settings_button = QtWidgets.QPushButton()
         self.advanced_settings_button.setText('Advanced Settings')
         self.advanced_settings_button.clicked.connect(lambda: self.popup_advanced_settings())
 
+        # Non linear settings layout ----------|
         # Show Canny edges button
         self.show_edges_check = QtWidgets.QCheckBox("Show Canny Edges")
         self.show_edges_check.setChecked(False)
@@ -228,15 +238,14 @@ class MainWindow(QtWidgets.QWidget):
         segmentation_opt_layout.addWidget(self.show_shadows_toggle)
         toolbar_layout.addWidget(segmentation_options)
 
-        interpolation_options = QtWidgets.QGroupBox()
-        interpolation_opt_layout = QtWidgets.QVBoxLayout()
-        interpolation_options.setLayout(interpolation_opt_layout)
         # Interpolation type label-dropdown pair
         interpolation_opt_layout.addLayout(interpolation_type_layout)
-        interpolation_opt_layout.addLayout(edge_threshold1_layout)
-        interpolation_opt_layout.addLayout(edge_threshold2_layout)
-        interpolation_opt_layout.addWidget(self.draw_normals)
-        interpolation_opt_layout.addWidget(self.show_edges_check)
+        nonlinear_settings_layout.addLayout(edge_threshold1_layout)
+        nonlinear_settings_layout.addLayout(edge_threshold2_layout)
+        nonlinear_settings_layout.addWidget(self.draw_normals)
+        nonlinear_settings_layout.addWidget(self.show_edges_check)
+        interpolation_opt_layout.addWidget(nonlinear_settings)
+        nonlinear_settings.hide()
 
         toolbar_layout.addWidget(interpolation_options)
         toolbar_layout.addWidget(self.save_button)
@@ -374,7 +383,8 @@ class MainWindow(QtWidgets.QWidget):
     def update_slice(self, vol, val):
         self.ax.clear()
         if (self.show_edges_check.isChecked()):
-            self.ax.imshow(canny_edge(vol[val], int(self.edge_threshold1.text()), int(self.edge_threshold2.text())))
+            colormap = colors.ListedColormap(cm.get_cmap('viridis', 512)(np.linspace(0.15, 0.85, 256)))
+            self.ax.imshow(canny_edge(vol[val], int(self.edge_threshold1.text()), int(self.edge_threshold2.text())), cmap=colormap)
         else:
             self.ax.imshow(vol[val])
 
@@ -438,7 +448,7 @@ class MainWindow(QtWidgets.QWidget):
             # drawing the interpolated points on slices between keyslices
             elif verify_partial_interpolation(int(val), lines):
                 partial_interpolation(self.ax, lines, int(val), 
-                                      type=self.interpolation_type_drop_down.currentText(), 
+                                      type=self.interpolation_type_dropdown.currentText(), 
                                       vol=vol,
                                       draw_edges=self.draw_normals.isChecked(),
                                       edge_threshold1=int(self.edge_threshold1.text()), 
@@ -806,6 +816,14 @@ class MainWindow(QtWidgets.QWidget):
 
         self.update_slice(vol, self.slice_slider.value())
         return True
+    
+    def interpolation_type_dropdown_handler(self, item):
+        if(self.interpolation_type_dropdown.currentText() == 'linear'):
+            item.hide()
+        else:
+            item.show()
+        self.update_slice(self.vol, self.slice_slider.value())
+
     
     def popup_advanced_settings(self):
         self.advanced_settings_popup = MyPopup(self.vol[self.slice_slider.value()])
