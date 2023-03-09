@@ -43,6 +43,7 @@ class Volume:
         self.shape_x = self._metadata["width"]
 
         if vol_path.suffix == ".zarr":
+            self._is_zarr = True
             chunk_size = 256
             self._data = ts.open(
                 {
@@ -64,7 +65,7 @@ class Volume:
                 }
             ).result()
         else:
-
+            self._is_zarr = False
             # Get list of slice image filenames
             slice_files = []
             for child in vol_path.iterdir():
@@ -78,22 +79,25 @@ class Volume:
 
             # Load slice images into volume
             logging.info("Loading volume slices from {}...".format(vol_path))
-            vol = np.empty((self.shape_z, self.shape_y, self.shape_x),
-                           dtype=np.uint16)
+
+            self._data = np.empty(
+                (self.shape_z, self.shape_y, self.shape_x),
+                dtype=np.uint16
+            )
             for slice_i, slice_file in tqdm(list(enumerate(slice_files))):
                 img = np.array(Image.open(slice_file), dtype=np.uint16).copy()
-                vol[slice_i, :, :] = img
+                self._data[slice_i, :, :] = img
             print()
-
-            self._data = ts.open(
-                {"driver": "array", "array": vol, "dtype": "uint16"}
-            ).result()
 
     def __getitem__(self, key):
         # TODO consider adding bounds checking and return 0 if not in bounds (to match previous implementation)
         #   It would be nice to avoid that if possible (doesn't affect ML performance), though, because
         #   it breaks the intuition around the array access.
-        return self._data[key].read().result()
+       
+        if self._is_zarr:
+            return self._data[key].read().result()
+        else:
+            return self._data[key]
 
     @property
     def shape(self) -> Tuple[int, ...]:

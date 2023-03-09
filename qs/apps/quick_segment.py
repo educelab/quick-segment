@@ -262,9 +262,16 @@ class MainWindow(QtWidgets.QWidget):
         self.init_y_zoom = self.ax.get_ylim()
         self.zoom_width = self.init_x_zoom
         self.zoom_height = self.init_y_zoom
+        self.xAxisLim = None
+        self.yAxisLim = None
+        self.pan_limit = False
+        self.global_xlim = self.vol[0].shape[1]
+        self.global_ylim = self.vol[0].shape[0]
 
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
+
+        cidClick = self.canvas.mpl_connect('button_release_event', self.onrelease)
 
         # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
         cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
@@ -441,57 +448,94 @@ class MainWindow(QtWidgets.QWidget):
 
         self.canvas.draw_idle()
 
-    # Function to be called when the slice is clicked to add points
+    """
+    Function to be called when mouse button is released
+    This function releases pan then draws a point if the 
+    mouse didn't pan and otherwise does nothing
+    :param self 
+    :param event
+    """
+    def onrelease(self, event):
+        # Release pan and get current xlimit and y limit values
+        self.canvas.toolbar.release_pan(event)
+        curr_xAxisLim = self.ax.get_xlim()
+        curr_yAxisLim = self.ax.get_ylim()
+
+        if event.button == 1: # Left release
+            
+            # Add a point if the limits have not changed since the press action
+            if self.xAxisLim == curr_xAxisLim and self.yAxisLim == curr_yAxisLim:
+                if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
+                    slice_num = self.slice_slider.value()
+                    new_point = [event.xdata, event.ydata, slice_num]
+                    self.lines[self.active_line].setdefault(slice_num, []).append(
+                        new_point)
+
+                    # drawing the line between the past and new point
+                    if len(self.lines[self.active_line][slice_num]) > 1:
+                        prev_point = self.lines[self.active_line][slice_num][-2]
+                        self.ax.plot([prev_point[0], new_point[0]],
+                                    [prev_point[1], new_point[1]], color='red')
+
+                    self.ax.add_artist(
+                        plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
+                    self.ax.add_artist(
+                        plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
+                                edgecolor='red'))
+                    self.canvas.draw_idle()
+
+                    # Add tracker on shadows
+                    # Previous slice shadow
+                    if self.show_shadows_toggle.isChecked() and len(self.lines[self.active_line][slice_num]) > 0:
+                        drawn_points = len(self.lines[self.active_line][slice_num]) - 1
+                        # putting in shadow for the previous key slice
+                        last_slice = find_previous_key(int(slice_num),
+                                                    self.lines[self.active_line])  # previous key slice shadow
+                        if last_slice != -1:
+                            self.ax.add_artist(
+                                plt.Circle((last_slice[drawn_points][0], last_slice[drawn_points][1]), 7, facecolor='none',
+                                        edgecolor='black'))
+
+                        # putting in the shadow for the next key slice
+                        next_slice = find_next_key(int(slice_num),
+                                                    self.lines[self.active_line])  # next key slice shadow
+                        if next_slice != -1:
+                            self.ax.add_artist(
+                                plt.Circle((next_slice[drawn_points][0], next_slice[drawn_points][1]), 7, facecolor='none',
+                                        edgecolor='white'))
+
+                    # on slice that has point == key slice and add it to the key slice list
+                    # Find slice in lines dictionary
+                    if slice_num in self.lines[self.active_line]:
+                        # if not already on list
+                        if len(self.lines[self.active_line][slice_num]) == 1:
+                            self.key_slice_drop_down.addItem(str(slice_num))
+                            self.key_slice_drop_down.setCurrentText(str(slice_num))
+            else: 
+                # If pan ends up outside of bounds, move it back in
+                self.fixPan(event)
+
+   
+    """
+    Function to be called when the slice is clicked to either enable the 
+    pan function(left click) or select current segmentation(right click)
+    :param self 
+    :param event
+    """
     def onclick(self, event):
         if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
-            if event.button == 1:  # Left click
-                print(find_sobel_edge(self.vol[self.slice_slider.value()], [int(event.xdata), int(event.ydata)]))
+            self.pan_limit = False
 
-                slice_num = self.slice_slider.value()
-                new_point = [event.xdata, event.ydata, slice_num]
-                self.lines[self.active_line].setdefault(slice_num, []).append(
-                    new_point)
+            if event.button == 1: # Left click
+                # Save current values for limits
+                self.xAxisLim = self.ax.get_xlim()
+                self.yAxisLim = self.ax.get_ylim()
 
-                # drawing the line between the past and new point
-                if len(self.lines[self.active_line][slice_num]) > 1:
-                    prev_point = self.lines[self.active_line][slice_num][-2]
-                    self.ax.plot([prev_point[0], new_point[0]],
-                                 [prev_point[1], new_point[1]], color='red')
+                if (self.xAxisLim[0] >= 0 and self.yAxisLim[1] >= 0 and 
+                self.xAxisLim[1] <= self.global_xlim and self.yAxisLim[0] <= self.global_ylim):
+                    # Enable pan
+                    self.canvas.toolbar.press_pan(event)  
 
-                self.ax.add_artist(
-                    plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
-                self.ax.add_artist(
-                    plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
-                               edgecolor='red'))
-                self.canvas.draw_idle()
-
-                # Add tracker on shadows
-                # Previous slice shadow
-                if self.show_shadows_toggle.isChecked() and len(self.lines[self.active_line][slice_num]) > 0:
-                    drawn_points = len(self.lines[self.active_line][slice_num]) - 1
-                    # putting in shadow for the previous key slice
-                    last_slice = find_previous_key(int(slice_num),
-                                                self.lines[self.active_line])  # previous key slice shadow
-                    if last_slice != -1:
-                        self.ax.add_artist(
-                            plt.Circle((last_slice[drawn_points][0], last_slice[drawn_points][1]), 7, facecolor='none',
-                                    edgecolor='black'))
-
-                    # putting in the shadow for the next key slice
-                    next_slice = find_next_key(int(slice_num),
-                                                self.lines[self.active_line])  # next key slice shadow
-                    if next_slice != -1:
-                        self.ax.add_artist(
-                            plt.Circle((next_slice[drawn_points][0], next_slice[drawn_points][1]), 7, facecolor='none',
-                                    edgecolor='white'))
-
-                # on slice that has point == key slice and add it to the key slice list
-                # Find slice in lines dictionary
-                if slice_num in self.lines[self.active_line]:
-                    # if not already on list
-                    if len(self.lines[self.active_line][slice_num]) == 1:
-                        self.key_slice_drop_down.addItem(str(slice_num))
-                        self.key_slice_drop_down.setCurrentText(str(slice_num))
             elif event.button == 3:  # Right click
                 slice_num = self.slice_slider.value()
                 min = 99999999
@@ -506,6 +550,89 @@ class MainWindow(QtWidgets.QWidget):
                             min = temp_min
                             closest_line = uuid
                 self.set_active(closest_line)
+
+    """
+    Function that moves the image so the user cannot pan off of the screen
+    :param self 
+    :param event
+    """
+    def fixPan(self, event):
+        # Save current values
+        curr_xAxisLim = self.ax.get_xlim()
+        curr_yAxisLim = self.ax.get_ylim()
+
+        # If pan goes off the left side
+        if (curr_xAxisLim[0] < 0):
+
+            # Save difference between the side off the screen and the limit to fix the opposing side
+            xdif = 0 - curr_xAxisLim[0]
+
+            # Adjust limits
+            list_curr_xAxisLim = list(curr_xAxisLim)
+            list_curr_xAxisLim[0] = 0
+            list_curr_xAxisLim[1] += xdif
+            curr_xAxisLim = tuple(list_curr_xAxisLim)
+
+            # Reset limits
+            self.ax.set_xlim(curr_xAxisLim)
+            self.ax.set_ylim(curr_yAxisLim)
+
+        # If pan goes off the top
+        if (curr_yAxisLim[1] < 0):
+
+            # Save difference between the side off the screen and the limit to fix the opposing side
+            ydif = 0 - curr_yAxisLim[1]
+
+            # Adjust limits
+            list_curr_yAxisLim = list(curr_yAxisLim)
+            list_curr_yAxisLim[1] = 0
+            list_curr_yAxisLim[0] += ydif
+            curr_yAxisLim = tuple(list_curr_yAxisLim)
+
+            # Reset limits
+            self.ax.set_xlim(curr_xAxisLim)
+            self.ax.set_ylim(curr_yAxisLim)
+
+        # If pan goes off the right side
+        if (curr_xAxisLim[1] > self.global_xlim):
+
+            # Save difference between the side off the screen and the limit to fix the opposing side
+            xdif = curr_xAxisLim[1] - self.global_xlim
+
+            # Adjust limits
+            list_curr_xAxisLim = list(curr_xAxisLim)
+            list_curr_xAxisLim[1] = self.global_xlim
+            list_curr_xAxisLim[0] -= xdif
+            curr_xAxisLim = tuple(list_curr_xAxisLim)
+
+            # Reset limits
+            self.ax.set_xlim(curr_xAxisLim)
+            self.ax.set_ylim(curr_yAxisLim)
+
+        # If pan goes off the bottom
+        if (curr_yAxisLim[0] > self.global_ylim):
+
+            # Save difference between the side off the screen and the limit to fix the opposing side
+            ydif = curr_yAxisLim[0] - self.global_ylim
+
+            # Adjust limits
+            list_curr_yAxisLim = list(curr_yAxisLim)
+            list_curr_yAxisLim[0] = self.global_ylim
+            list_curr_yAxisLim[1] -= ydif
+            curr_yAxisLim = tuple(list_curr_yAxisLim)
+
+            # Reset limits
+            self.ax.set_xlim(curr_xAxisLim)
+            self.ax.set_ylim(curr_yAxisLim)
+        
+        # Redraw canvas
+        self.canvas.draw()
+        self.toolbar.push_current()
+
+        # Store zoom variables
+        self.zoom_width = curr_xAxisLim
+        self.zoom_height = curr_yAxisLim
+
 
     # function set the slice as active
     def set_active(self, uuid):
