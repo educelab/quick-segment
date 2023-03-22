@@ -152,11 +152,13 @@ class MainWindow(QtWidgets.QWidget):
             lambda: self.update_slice(vol, self.slice_slider.value()))
         # undo last point button
         self.undo_point_button = QtWidgets.QPushButton()
-        self.undo_point_button.setText('Undo Last Point')
+        self.undo_point_button.setIcon(QIcon(':/icons/undo'))
+        #self.undo_point_button.setText('Undo Last Point')
         self.undo_point_button.clicked.connect(lambda: self.undo_point(vol))
         # clear slice button
         self.clear_slice_button = QtWidgets.QPushButton()
-        self.clear_slice_button.setText('Clear Slice')
+        self.clear_slice_button.setIcon(QIcon(':/icons/clear_slice'))
+        #self.clear_slice_button.setText('Clear Slice')
         self.clear_slice_button.clicked.connect(lambda: self.clear_slice(vol))
         # clear all button
         #  - first: set a pop window to confirm
@@ -172,7 +174,8 @@ class MainWindow(QtWidgets.QWidget):
             lambda i: False if (i.text() == 'Cancel') else self.clear_all(vol))
         #  - second: create button
         self.clear_all_button = QtWidgets.QPushButton()
-        self.clear_all_button.setText('Clear All')
+        self.clear_all_button.setIcon(QIcon(':/icons/clear_all_icon'))
+        #self.clear_all_button.setText('Clear All')
         self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
