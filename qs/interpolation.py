@@ -89,9 +89,9 @@ def partial_linear_interpolation(ax, lines, slice, img, circle_size=0):
         plt.Circle((last_point[0], last_point[1]), circle_size,
                     facecolor='none', edgecolor='yellow'))
 
-def full_interpolation(lines):
+def full_linear_interpolation(lines):
     """ 
-    Interpolates the full extent of the segmentation
+    Linearly interpolates the full extent of the segmentation
 
     :param lines: an array of lines where each line is a list of points in a key slice
     """
@@ -215,8 +215,8 @@ def draw_detected_edge(ax, edge_data, point, neighbor_1, neighbor_2=None, magnit
 
 def partial_nonlinear_interpolation(ax, lines, slice, vol, draw_edges=True, edge_threshold1=100, edge_threshold2=120, circle_size=0):
     """
-    Partially linearly interpolates a given slice between the two slices that
-    surround it.
+    Partially interpolates a given slice between the two slices that
+    surround it based on edges.
 
     :param ax: the ax on which to draw interpolation
     :param lines: the segmentation lines
@@ -279,6 +279,75 @@ def partial_nonlinear_interpolation(ax, lines, slice, vol, draw_edges=True, edge
     ax.add_artist(
         plt.Circle((adjusted_point[0], adjusted_point[1]), 3.5, color='yellow'))
 
+def full_nonlinear_interpolation(lines, vol, edge_threshold1=100, edge_threshold2=120):
+    """
+    Fully interpolates a given slice between the two slices that
+    surround it based on edges.
+
+    :param lines: the segmentation lines
+    :param vol: images of the slices used to calculate edges
+    """
+
+    if len(lines) <= 1:
+        print('add points to at least two separate slices')
+        return
+    
+    lines = dict(sorted(lines.items()))
+
+    first = list(lines.keys())[0]
+    last = list(lines.keys())[-1]
+
+    # empty point cloud to store final points
+    cloud = []
+
+    prev_key = lines[first]
+    next_key = find_next_key(first, lines)
+    relative_key = [i for i in prev_key]
+    next_relative_key = []
+
+    for i, slice_idx in enumerate(range(first, last)):
+
+        if slice_idx == next_key[0][2]:
+            for point in lines[slice_idx]:
+                cloud[i].append(point)
+            next_key = find_next_key(slice_idx, lines)
+            relative_key = cloud[i]
+        else:
+            next_relative_key.clear()
+            # For each intermediate slice between the previous and current
+            # Get edge information
+            edge_data = canny_edge(vol[slice_idx], edge_threshold1, edge_threshold2)
+            # Find first two points
+            point = interpolate_point(i, relative_key[0], next_key[0])
+            next_point = interpolate_point(i, relative_key[1], next_key[1])
+
+            # Adjust first point
+            next_relative_key.append(adjust_point_based_on_edges(edge_data, point=point, neighbor_1=next_point))
+
+            # Iterate between the 2nd and penultimate point
+            for j in range(1, len(relative_key) - 1):
+                prev_point = point
+                point = next_point
+                next_point = interpolate_point(i, relative_key[j + 1], next_key[j + 1])
+
+                next_relative_key.append(adjust_point_based_on_edges(edge_data, point=point, neighbor_1=prev_point, neighbor_2=next_point))
+
+            # Adjust last point
+            next_relative_key.append(adjust_point_based_on_edges(edge_data, point=next_point, neighbor_1=point))
+            relative_key.clear()
+            relative_key = [p for p in next_relative_key]
+            cloud.append([p for p in next_relative_key])
+
+        print(next_relative_key)
+        print(cloud[-1])
+
+    # Conclude interpolation by adding last slice
+    cloud.append([])
+    for point in lines[last]:
+        cloud[-1].append(point)
+
+    return np.array(cloud, dtype='float64')
+
 
 #--------------------------------------------------------------
 #              GENERAL INTERPOLATION FUNCTIONS
@@ -332,5 +401,23 @@ def partial_interpolation(ax, lines, slice, type='linear', vol=None, draw_edges=
         partial_linear_interpolation(ax, lines, slice, circle_size)
     elif type == 'non-linear' and vol != None:
         partial_nonlinear_interpolation(ax, lines, slice, vol, draw_edges=draw_edges, edge_threshold1=edge_threshold1, edge_threshold2=edge_threshold2, circle_size=circle_size)
+    else:
+        print("Not accepted interpolation type")
+
+def full_interpolation(lines, type='linear', vol=None, edge_threshold1=100, edge_threshold2=120):
+    """
+    Interpolates all points in a segmentation
+    
+    :param ax: the ax on which to draw interpolation
+    :param lines: the segmentation lines
+    :param type: the type of interpolation to be carried out (linear or non-linear)
+    :param vol: images of the slices used to calculate edges
+    :param circle_size: the circle that indicates if the line is active (0 if not, 7 if active)
+    """
+
+    if type == 'linear':
+        return full_linear_interpolation(lines)
+    elif type == 'non-linear' and vol != None:
+        return full_nonlinear_interpolation(lines, vol, edge_threshold1=edge_threshold1, edge_threshold2=edge_threshold2)
     else:
         print("Not accepted interpolation type")

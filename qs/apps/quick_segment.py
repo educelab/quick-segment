@@ -21,9 +21,14 @@ import qs.resources
 from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
                      load_json, load_vcps, write_metadata, write_ordered_vcps,
                      write_seg_json)
-from qs.interpolation import (find_next_key, find_previous_key,
-                              full_interpolation, interpolate_point,
-                              verify_full_interpolation, verify_partial_interpolation, find_normal_direction, partial_interpolation)
+from qs.interpolation import (find_next_key, 
+                              find_previous_key,
+                              interpolate_point,
+                              verify_full_interpolation, 
+                              verify_partial_interpolation, 
+                              find_normal_direction, 
+                              partial_interpolation,
+                              full_interpolation)
 from qs.popups import MyPopup
 from qs.math import find_min, find_sobel_edge, canny_edge
 
@@ -776,7 +781,12 @@ class MainWindow(QtWidgets.QWidget):
             self.incorrect_points.exec()
             return
         uuid = get_date()
-        interpolation = full_interpolation(self.lines[self.active_line])
+        interpolation = full_interpolation(self.lines[self.active_line], 
+                                           type=self.interpolation_type_dropdown.currentText(), 
+                                           vol=vol,
+                                           edge_threshold1=int(self.edge_threshold1.text()), 
+                                           edge_threshold2=int(self.edge_threshold2.text())
+                                           )
         write_ordered_vcps(get_segmentation_dir(seg_dir, uuid), interpolation)
         write_metadata(get_segmentation_dir(seg_dir, uuid), uuid)
         write_seg_json(get_segmentation_dir(seg_dir, uuid),
