@@ -16,9 +16,20 @@ def find_min(point, line):
 
     return min_pt
 
+def get_vector_magnitude(vec, orig=[0,0,0]):
+    """
+    Get magnitude of vector based on a reference point
+
+    :param vec: point vector
+    :param orig: point used as a reference, if none is given assume vec is a direction
+    """
+    return sqrt(calculate_sq_distance(vec, orig))
+
+
 def inverse_vector(vec, orig=[0,0,0]):
     """
     Invert direction of vector based on a reference point
+
     :param vec: point vector to be inverted
     :param orig: point used as a reference for inverting, if none is given assume vec is a direction
     """

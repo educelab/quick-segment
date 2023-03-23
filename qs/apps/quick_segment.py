@@ -231,6 +231,16 @@ class MainWindow(QtWidgets.QWidget):
         edge_threshold2_layout.addWidget(QtWidgets.QLabel("Higher edge threshold:"))
         edge_threshold2_layout.addWidget(self.edge_threshold2)
 
+        # Edge search limit
+        self.edge_search_limit = QtWidgets.QLineEdit()
+        self.edge_search_limit.setMaxLength(5)
+        self.edge_search_limit.setText("40")
+        self.edge_search_limit.returnPressed.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        edge_search_limit_layout = QtWidgets.QHBoxLayout()
+        edge_search_limit_layout.addWidget(QtWidgets.QLabel("Max distance of edge:"))
+        edge_search_limit_layout.addWidget(self.edge_search_limit)
+
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
@@ -248,6 +258,7 @@ class MainWindow(QtWidgets.QWidget):
         interpolation_opt_layout.addLayout(interpolation_type_layout)
         nonlinear_settings_layout.addLayout(edge_threshold1_layout)
         nonlinear_settings_layout.addLayout(edge_threshold2_layout)
+        nonlinear_settings_layout.addLayout(edge_search_limit_layout)
         nonlinear_settings_layout.addWidget(self.draw_normals)
         nonlinear_settings_layout.addWidget(self.show_edges_check)
         interpolation_opt_layout.addWidget(nonlinear_settings)
@@ -457,7 +468,8 @@ class MainWindow(QtWidgets.QWidget):
                                       vol=vol,
                                       draw_edges=self.draw_normals.isChecked(),
                                       edge_threshold1=int(self.edge_threshold1.text()), 
-                                      edge_threshold2=int(self.edge_threshold2.text()), 
+                                      edge_threshold2=int(self.edge_threshold2.text()),
+                                      edge_search_limit=int(self.edge_search_limit.text()),
                                       circle_size=circle_size
                                       )
 
@@ -785,7 +797,8 @@ class MainWindow(QtWidgets.QWidget):
                                            type=self.interpolation_type_dropdown.currentText(), 
                                            vol=vol,
                                            edge_threshold1=int(self.edge_threshold1.text()), 
-                                           edge_threshold2=int(self.edge_threshold2.text())
+                                           edge_threshold2=int(self.edge_threshold2.text()),
+                                            edge_search_limit=int(self.edge_search_limit.text()),
                                            )
         write_ordered_vcps(get_segmentation_dir(seg_dir, uuid), interpolation)
         write_metadata(get_segmentation_dir(seg_dir, uuid), uuid)
