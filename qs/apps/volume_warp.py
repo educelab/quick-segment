@@ -16,6 +16,8 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
 
+
+
 import qs.apps.quick_segment
 
 from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
