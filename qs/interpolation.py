@@ -309,6 +309,9 @@ def verify_full_interpolation(lines):
 
     :param lines: an array of lines where each line is a list of points in a key slice
     """
+    if(len(lines) <= 0):
+        return False
+
     temp = len(lines[list(lines.keys())[0]])
     for line in lines:
         if len(lines[line]) != temp:
