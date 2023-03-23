@@ -112,16 +112,18 @@ class ViewPopUp(QtWidgets.QDialog):
         self.window_height = 600
         self.setMinimumSize(self.window_width, self.window_height)
         self.setWindowTitle("View All Points")
-        self.canvas = FigCanvas(
-            plt.Figure(figsize=(7, 7), facecolor='#3d3d3d'))
-        self.ax = self.canvas.figure.subplots(subplot_kw={'projection':'3d'})
-        self.ax.set(facecolor='#3d3d3d')
-        self.ax.tick_params(labelcolor='white', colors='white')
 
         # Store volume info
         self.vol_height = vol.shape[1]
         self.vol_width = vol.shape[2]
         self.vol_slices = vol.shape[0]
+
+        # Set Matplotlib axes
+        self.canvas = FigCanvas(
+            plt.Figure(figsize=(8, 8), facecolor='#3d3d3d'))
+        self.ax = self.canvas.figure.subplots(subplot_kw={'projection':'3d'})
+        self.ax.set(facecolor='#3d3d3d')
+        self.ax.tick_params(labelcolor='white', colors='white')
 
         # Slider
         self.slice_slider = QtWidgets.QSlider(Qt.Orientation.Vertical)
@@ -167,6 +169,8 @@ class ViewPopUp(QtWidgets.QDialog):
         """
         self.ax.clear()
         self.ax.set_zlim3d(0, self.vol_slices)
+        self.ax.set_ylim3d(-(self.vol_width-self.vol_height)/2, self.vol_height + (self.vol_width-self.vol_height)/2)
+        self.ax.set_xlim3d(0, self.vol_width)
 
         # Find shape values
         x, y = np.meshgrid(np.linspace(0, self.vol_width, self.vol_width), np.linspace(0, self.vol_height, self.vol_height))
