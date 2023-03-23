@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox
 from matplotlib import pyplot as plt
@@ -201,6 +201,20 @@ class MainWindow(QtWidgets.QWidget):
         self.advanced_settings_button.clicked.connect(lambda: self.popup_advanced_settings())
 
         # Non linear settings layout ----------|
+        # Info box
+        info_box = QtWidgets.QLabel("?")
+        info_box.setFixedSize(16, 16)
+        info_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info_box.setStyleSheet("background-color: yellow; border-radius: 8px; color: black")
+        info_box.setToolTip("This non-linear interpolation adjusts each point based on edges of\n"
+                            "the image. It centers the point so it is equidistant to edges on both\n"
+                            "sides. You can customize:\n\n"
+                            "- Lower edge threshold: the lowest value that is considered an edge\n"
+                            "- Lower edge threshold: the highest value that is considered an edge\n"
+                            "- Max distance of edge: the maximum distance between the edge and the\n"
+                            "  point. If no edges are found in this distance, it leaves the point\n"
+                            "  in the same spot.")
+
         # Show Canny edges button
         self.show_edges_check = QtWidgets.QCheckBox("Show Canny Edges")
         self.show_edges_check.setChecked(False)
@@ -256,6 +270,7 @@ class MainWindow(QtWidgets.QWidget):
 
         # Interpolation type label-dropdown pair
         interpolation_opt_layout.addLayout(interpolation_type_layout)
+        nonlinear_settings_layout.addWidget(info_box)
         nonlinear_settings_layout.addLayout(edge_threshold1_layout)
         nonlinear_settings_layout.addLayout(edge_threshold2_layout)
         nonlinear_settings_layout.addLayout(edge_search_limit_layout)
