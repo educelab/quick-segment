@@ -205,12 +205,12 @@ class MainWindow(QtWidgets.QWidget):
         info_box = QtWidgets.QLabel("?")
         info_box.setFixedSize(16, 16)
         info_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_box.setStyleSheet("background-color: yellow; border-radius: 8px; color: black")
+        info_box.setStyleSheet("background-color: lightgray; border-radius: 8px; color: black")
         info_box.setToolTip("This non-linear interpolation adjusts each point based on edges of\n"
                             "the image. It centers the point so it is equidistant to edges on both\n"
                             "sides. You can customize:\n\n"
                             "- Lower edge threshold: the lowest value that is considered an edge\n"
-                            "- Lower edge threshold: the highest value that is considered an edge\n"
+                            "- Higher edge threshold: the highest value that is considered an edge\n"
                             "- Max distance of edge: the maximum distance between the edge and the\n"
                             "  point. If no edges are found in this distance, it leaves the point\n"
                             "  in the same spot.")
