@@ -48,7 +48,7 @@ class MainWindow(QtWidgets.QWidget):
         self.window_height = 800
         self.setMinimumSize(self.window_width, self.window_height)
         self.setWindowTitle("Interpolation Segmentation")
-        self.colormap = colors.ListedColormap(cm.get_cmap('viridis', 512)(np.linspace(0.15, 0.85, 256)))
+        self.colormap = colors.ListedColormap(cm.get_cmap('bone', 512)(np.linspace(0.15, 0.85, 256)))
         self.vol = vol
 
         # ------------------------------Window GUI-----------------------------
@@ -415,7 +415,7 @@ class MainWindow(QtWidgets.QWidget):
     def update_slice(self, vol, val):
         self.ax.clear()
         if (self.show_edges_check.isChecked()):
-            self.ax.imshow(canny_edge(vol[val], int(self.edge_threshold1.text()), int(self.edge_threshold2.text())), cmap=self.colormap)
+            self.ax.imshow(canny_edge(vol[val], int(self.edge_threshold1.text()), int(self.edge_threshold2.text()), dilation=2), cmap=self.colormap)
         else:
             self.ax.imshow(vol[val])
 

@@ -242,7 +242,7 @@ def partial_nonlinear_interpolation(ax, lines, slice, vol, draw_edges=True, edge
         next_relative_key.clear()
         # For each intermediate slice between the previous and current
         # Get edge information
-        edge_data = canny_edge(vol[slice], edge_threshold1, edge_threshold2)
+        edge_data = canny_edge(vol[slice], edge_threshold1, edge_threshold2, dilation=2)
         # Find first two points
         point = interpolate_point(i, relative_key[0], next_key[0])
         next_point = interpolate_point(i, relative_key[1], next_key[1])
@@ -264,7 +264,7 @@ def partial_nonlinear_interpolation(ax, lines, slice, vol, draw_edges=True, edge
         relative_key = [p for p in next_relative_key]
     
     # For last slice, repeat above process on last time, but this time draw it to canvas
-    edge_data = canny_edge(vol[slice], edge_threshold1, edge_threshold2)
+    edge_data = canny_edge(vol[slice], edge_threshold1, edge_threshold2, dilation=2)
     point = interpolate_point(slice, relative_key[0], next_key[0])
     next_point = interpolate_point(slice, relative_key[1], next_key[1])
     adjusted_point = adjust_point_based_on_edges(edge_data, point=point, neighbor_1=next_point, magnitude=edge_search_limit)
@@ -323,7 +323,7 @@ def full_nonlinear_interpolation(lines, vol, edge_threshold1=100, edge_threshold
             next_relative_key.clear()
             # For each intermediate slice between the previous and current
             # Get edge information
-            edge_data = canny_edge(vol[slice_idx], edge_threshold1, edge_threshold2)
+            edge_data = canny_edge(vol[slice_idx], edge_threshold1, edge_threshold2, dilation=2)
             # Find first two points
             point = interpolate_point(i, relative_key[0], next_key[0])
             next_point = interpolate_point(i, relative_key[1], next_key[1])
@@ -401,13 +401,22 @@ def partial_interpolation(ax, lines, slice, type='linear', vol=None, draw_edges=
     :param lines: the segmentation lines
     :param type: the type of interpolation to be carried out (linear or non-linear)
     :param vol: images of the slices used to calculate edges
+    :param draw_edges: where or not to draw the normals the make up the edge detection
+    :param edge_threshold1: lower threshold for the canny edge detection
+    :param edge_threshold2: higher threshold for the canny edge detection
+    :param edge_search_limit: maximum distance away from point to look for edge
     :param circle_size: the circle that indicates if the line is active (0 if not, 7 if active)
     """
 
     if type == 'linear':
         partial_linear_interpolation(ax, lines, slice, circle_size)
     elif type == 'non-linear' and vol != None:
-        partial_nonlinear_interpolation(ax, lines, slice, vol, draw_edges=draw_edges, edge_threshold1=edge_threshold1, edge_threshold2=edge_threshold2, edge_search_limit=edge_search_limit, circle_size=circle_size)
+        partial_nonlinear_interpolation(ax, lines, slice, vol, 
+                                        draw_edges=draw_edges, 
+                                        edge_threshold1=edge_threshold1, 
+                                        edge_threshold2=edge_threshold2, 
+                                        edge_search_limit=edge_search_limit, 
+                                        circle_size=circle_size)
     else:
         print("Not accepted interpolation type")
 
@@ -415,11 +424,12 @@ def full_interpolation(lines, type='linear', vol=None, edge_threshold1=100, edge
     """
     Interpolates all points in a segmentation
     
-    :param ax: the ax on which to draw interpolation
     :param lines: the segmentation lines
     :param type: the type of interpolation to be carried out (linear or non-linear)
     :param vol: images of the slices used to calculate edges
-    :param circle_size: the circle that indicates if the line is active (0 if not, 7 if active)
+    :param edge_threshold1: lower threshold for the canny edge detection
+    :param edge_threshold2: higher threshold for the canny edge detection
+    :param edge_search_limit: maximum distance away from point to look for edge
     """
 
     if type == 'linear':

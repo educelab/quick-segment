@@ -107,18 +107,21 @@ def sobel_edge_detection_img(image):
     
     return new_img
 
-def canny_edge(image, t1=100, t2=120):
+def canny_edge(image, t1=100, t2=120, dilation=1):
     """
     Wrapper around OpenCV's canny edge detection to convert nparray to the 
     right format and normalize it between 0 and 255 before sending to the
-    canny edge detection
+    canny edge detection. If necessary, it dilates the edges.
 
     :param img: image to be used
     :param t1: threshold 1 for the edge detection
     :param t2: threhold 2 for the edge detection
+    :param dilation: size of dilation kernel (size 1 means no dilation)
     """
     img = image.astype('float64')
     img *= (255.0/img.max())
     img = np.uint8(img)
 
-    return cv.Canny(image=img, threshold1=t1, threshold2=t2)
+    edge_img = cv.Canny(image=img, threshold1=t1, threshold2=t2)
+
+    return cv.dilate(edge_img, np.ones((dilation, dilation), np.uint8), iterations=1)
