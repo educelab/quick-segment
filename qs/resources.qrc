@@ -8,5 +8,6 @@
         <file alias="undo">resources/icons/undo.png</file>
         <file alias="clear_slice">resources/icons/clear_slice.png</file>
         <file alias="clear_all_icon">resources/icons/clear_all_icon.png</file>
+        <file alias="save">resources/icons/save.png</file>
     </qresource>
 </RCC>

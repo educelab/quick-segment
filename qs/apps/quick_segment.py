@@ -83,6 +83,7 @@ class MainWindow(QtWidgets.QWidget):
             lambda: self.update_slice(vol, self.slice_slider.value()))
         # Slider index box
         self.slice_index = IntLineEdit(self, vol, seg_dir)
+        self.slice_index.setFixedWidth(100)
         self.slice_index.setMaxLength(5)
         self.slice_index.setPlaceholderText("0")
         self.slice_index.returnPressed.connect(
@@ -90,23 +91,28 @@ class MainWindow(QtWidgets.QWidget):
         # Step slice navigation
         self.big_step_decrease_button = QtWidgets.QPushButton()
         self.big_step_decrease_button.setIcon(QIcon(':/icons/double_arrow_left'))
+        # self.big_step_decrease_button.setFixedWidth(100)
         self.big_step_decrease_button.clicked.connect(
             lambda: self.step_slice(vol, "Multi Step Decrease"))
         self.step_decrease_button = QtWidgets.QPushButton()
         self.step_decrease_button.setIcon(QIcon(':/icons/arrow_left'))
+        # self.step_decrease_button.setFixedWidth(100)
         self.step_decrease_button.clicked.connect(
             lambda: self.step_slice(vol, "Single Step Decrease"))
         self.step_increase_button = QtWidgets.QPushButton()
         self.step_increase_button.setIcon(QIcon(':/icons/arrow_right'))
+        # self.step_increase_button.setFixedWidth(100)
         self.step_increase_button.clicked.connect(
             lambda: self.step_slice(vol, "Single Step Increase"))
         self.big_step_increase_button = QtWidgets.QPushButton()
         self.big_step_increase_button.setIcon(
             QIcon(':/icons/double_arrow_right'))
+        # self.big_step_increase_button.setFixedWidth(100)
         self.big_step_increase_button.clicked.connect(
             lambda: self.step_slice(vol, "Multi Step Increase"))
         # Key Slice drop down navigation
         self.key_slice_drop_down = QtWidgets.QComboBox()
+        # self.key_slice_drop_down.setFixedWidth(200)
         self.key_slice_drop_down.addItem("~")
         self.key_slice_drop_down.activated.connect(
             lambda: self.set_slice(vol, self.key_slice_drop_down.currentText()))
@@ -115,20 +121,29 @@ class MainWindow(QtWidgets.QWidget):
         slider_layout = QtWidgets.QHBoxLayout()
         slider_layout.addWidget(self.slider_label)
         slider_layout.addWidget(self.slice_slider)
+        #slider_layout.addWidget(self.step_decrease_button)
+        #slider_layout.addWidget(self.step_increase_button)
         slider_layout.addWidget(self.slice_index)
+
         # adding step nav to layout
         step_layout = QtWidgets.QHBoxLayout()
+        #step_layout.addWidget(self.slice_index)
         step_layout.addWidget(self.big_step_decrease_button)
         step_layout.addWidget(self.step_decrease_button)
         step_layout.addWidget(self.step_increase_button)
         step_layout.addWidget(self.big_step_increase_button)
         step_layout.addWidget(self.key_slice_drop_down)
+
         # adding to overall window layout
         slice_layout.addLayout(slider_layout)
         slice_layout.addLayout(step_layout)
 
         # -----------------------------Tool Bar Layout-------------------------------
         # segmentation loader
+        bottom_toolbar = QtWidgets.QHBoxLayout()
+        left_toolbar = QtWidgets.QVBoxLayout()
+        right_toolbar = QtWidgets.QVBoxLayout()
+
         self.segmentation_list = QtWidgets.QListWidget()
         fill_seg_list(self, vol, seg_dir, self.segmentation_list)
         self.segmentation_list.itemClicked.connect(
@@ -143,7 +158,9 @@ class MainWindow(QtWidgets.QWidget):
 
         # save button
         self.save_button = QtWidgets.QPushButton()
-        self.save_button.setText('Save Points')
+        self.save_button.setIcon(QIcon(':/icons/save'))
+        self.save_button.setToolTip('Save Points')
+        #self.save_button.setText('Save Points')
         self.save_button.clicked.connect(lambda: self.save_points(vol, seg_dir))
         # Show slice shadows toggel 
         self.show_shadows_toggle = QtWidgets.QCheckBox("Show Slice Shadows")
@@ -153,11 +170,14 @@ class MainWindow(QtWidgets.QWidget):
         # undo last point button
         self.undo_point_button = QtWidgets.QPushButton()
         self.undo_point_button.setIcon(QIcon(':/icons/undo'))
+        self.undo_point_button.setToolTip('Undo Last Point')
+        #self.undo_point_button.setFixedWidth(25)
         #self.undo_point_button.setText('Undo Last Point')
         self.undo_point_button.clicked.connect(lambda: self.undo_point(vol))
         # clear slice button
         self.clear_slice_button = QtWidgets.QPushButton()
         self.clear_slice_button.setIcon(QIcon(':/icons/clear_slice'))
+        self.clear_slice_button.setToolTip('Clear Slice')
         #self.clear_slice_button.setText('Clear Slice')
         self.clear_slice_button.clicked.connect(lambda: self.clear_slice(vol))
         # clear all button
@@ -175,17 +195,22 @@ class MainWindow(QtWidgets.QWidget):
         #  - second: create button
         self.clear_all_button = QtWidgets.QPushButton()
         self.clear_all_button.setIcon(QIcon(':/icons/clear_all_icon'))
+        self.clear_all_button.setToolTip('Clear All')
         #self.clear_all_button.setText('Clear All')
         self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
         # ToolBar_Layout.addLayout(Seg_layout)
-        toolbar_layout.addWidget(self.undo_point_button)
-        toolbar_layout.addWidget(self.clear_slice_button)
-        toolbar_layout.addWidget(self.clear_all_button)
+        toolbar_layout.addLayout(bottom_toolbar)
+        bottom_toolbar.addLayout(left_toolbar)
+        bottom_toolbar.addLayout(right_toolbar)
+        left_toolbar.addWidget(self.undo_point_button)
+        #toolbar_layout.setAlignment(self.undo_point_button, Qt.AlignmentFlag.AlignHCenter)
+        right_toolbar.addWidget(self.clear_slice_button)
+        left_toolbar.addWidget(self.clear_all_button)
+        right_toolbar.addWidget(self.save_button)
         toolbar_layout.addWidget(self.show_shadows_toggle)
-        toolbar_layout.addWidget(self.save_button)
 
         # Pop window in case number of points is incorrect
         self.incorrect_points = QtWidgets.QMessageBox()
