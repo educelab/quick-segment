@@ -148,6 +148,7 @@ class MainWindow(QtWidgets.QWidget):
         self.save_button.setText('Save Points')
         self.save_button.clicked.connect(lambda: self.save_points(vol, seg_dir))
         # views buttons layout
+        self.perspective = 'xy'
         views_buttons_layout = QtWidgets.QHBoxLayout()
         self.xy_button = QtWidgets.QPushButton()
         self.xy_button.setText('XY')
@@ -333,6 +334,9 @@ class MainWindow(QtWidgets.QWidget):
 
     # Loads the slice and its points
     def update_slice(self, vol, val):
+        if (self.perspective != 'xy')
+
+
         self.ax.clear()
         self.ax.imshow(vol[val])
 
@@ -437,7 +441,7 @@ class MainWindow(QtWidgets.QWidget):
             
             # Add a point if the limits have not changed since the press action
             if self.xAxisLim == curr_xAxisLim and self.yAxisLim == curr_yAxisLim:
-                if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
+                if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == '') and (self.perspective == 'xy'):
                     slice_num = self.slice_slider.value()
                     new_point = [event.xdata, event.ydata, slice_num]
                     self.lines[self.active_line].setdefault(slice_num, []).append(
@@ -780,11 +784,13 @@ class MainWindow(QtWidgets.QWidget):
         return True
     
     def show_view(self, view):
-        vol_width = self.vol.shape[0]
+        self.ax.clear()
+        vol_width = self.vol.shape[2]
         vol_height = self.vol.shape[1]
-        vol_slices = self.vol.shape[2]
+        vol_slices = self.vol.shape[0]
 
         if view == 'xy':
+            self.perspective = 'xy'
             self.update_slice(self.vol, self.slice_slider.value())
             return
         elif view == 'xz':
@@ -792,15 +798,18 @@ class MainWindow(QtWidgets.QWidget):
             xs=np.tile(np.arange(0, vol_width), vol_slices)
             ys=np.full(vol_slices * vol_width, 0)
             zs=np.repeat(np.arange(0, vol_slices), vol_width)
-            #slice_img = self.vol[zs, ys, xs].reshape(vol_slices, vol_width).transpose()
+            slice_img = self.vol[zs, ys, xs].reshape(vol_slices, vol_width).transpose()
+            self.perspective = 'xz'
         elif view == 'yz':
             # YZ View
             xs=np.full(vol_slices * vol_height, 0)
             ys=np.repeat(np.arange(0, vol_slices), vol_height)
             zs=np.tile(np.arange(0, vol_slices), vol_height)
-            #slice_img = self.vol[zs, ys, xs].reshape(vol_height, vol_slices).transpose()
+            slice_img = self.vol[zs, ys, xs].reshape(vol_height, vol_slices).transpose()
+            self.perspective = 'yz'
 
-        #self.ax.imshow(slice_img)
+        self.ax.imshow(slice_img)
+        self.canvas.draw_idle()
 
 
 # -----------------------------------------------------------------
