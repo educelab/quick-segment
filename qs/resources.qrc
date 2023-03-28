@@ -5,5 +5,8 @@
         <file alias="arrow_right">resources/icons/arrow_right.png</file>
         <file alias="double_arrow_left">resources/icons/double_arrow_left.png</file>
         <file alias="double_arrow_right">resources/icons/double_arrow_right.png</file>
+        <file alias="undo">resources/icons/undo.png</file>
+        <file alias="clear_slice">resources/icons/clear_slice.png</file>
+        <file alias="clear_all_icon">resources/icons/clear_all_icon.png</file>
     </qresource>
 </RCC>

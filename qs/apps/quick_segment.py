@@ -6,7 +6,7 @@ import sys
 import time
 from pathlib import Path
 
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox
@@ -82,7 +82,7 @@ class MainWindow(QtWidgets.QWidget):
         self.slice_slider.valueChanged.connect(
             lambda: self.update_slice(vol, self.slice_slider.value()))
         # Slider index box
-        self.slice_index = QtWidgets.QLineEdit()
+        self.slice_index = IntLineEdit(self, vol, seg_dir)
         self.slice_index.setMaxLength(5)
         self.slice_index.setPlaceholderText("0")
         self.slice_index.returnPressed.connect(
@@ -152,11 +152,13 @@ class MainWindow(QtWidgets.QWidget):
             lambda: self.update_slice(vol, self.slice_slider.value()))
         # undo last point button
         self.undo_point_button = QtWidgets.QPushButton()
-        self.undo_point_button.setText('Undo Last Point')
+        self.undo_point_button.setIcon(QIcon(':/icons/undo'))
+        #self.undo_point_button.setText('Undo Last Point')
         self.undo_point_button.clicked.connect(lambda: self.undo_point(vol))
         # clear slice button
         self.clear_slice_button = QtWidgets.QPushButton()
-        self.clear_slice_button.setText('Clear Slice')
+        self.clear_slice_button.setIcon(QIcon(':/icons/clear_slice'))
+        #self.clear_slice_button.setText('Clear Slice')
         self.clear_slice_button.clicked.connect(lambda: self.clear_slice(vol))
         # clear all button
         #  - first: set a pop window to confirm
@@ -172,7 +174,8 @@ class MainWindow(QtWidgets.QWidget):
             lambda i: False if (i.text() == 'Cancel') else self.clear_all(vol))
         #  - second: create button
         self.clear_all_button = QtWidgets.QPushButton()
-        self.clear_all_button.setText('Clear All')
+        self.clear_all_button.setIcon(QIcon(':/icons/clear_all_icon'))
+        #self.clear_all_button.setText('Clear All')
         self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
@@ -667,8 +670,7 @@ class MainWindow(QtWidgets.QWidget):
         elif slice_num > vol.shape[0] - 1:
             slice_num = slice_num - vol.shape[0]
 
-        self.slice_slider.setValue(
-            slice_num)  # setting slider value and auto calling the update function
+        self.slice_slider.setValue(slice_num)  # setting slider value and auto calling the update function
 
     def merge_segmentations(self, vol, seg_dir):
         # TBD
@@ -760,6 +762,35 @@ class MainWindow(QtWidgets.QWidget):
 
         self.update_slice(vol, self.slice_slider.value())
         return True
+    
+
+class IntLineEdit(QtWidgets.QLineEdit):
+    
+    def __init__(self, Aself, vol, seg_dir, parent=None):
+        self.Aself = Aself
+        self.vol = vol
+        self.seg_dir = seg_dir
+        self.slice_index = QtWidgets.QLineEdit()
+        intInputValidation = QtGui.QIntValidator(0, 99999, self.slice_index)
+        super().__init__(parent, maxLength=2, frame=False)
+        self.setValidator(intInputValidation)
+
+    # Called when a key is pressed
+    def keyPressEvent(self, event):
+        step_slice = self.Aself.step_slice
+        # If the key is the right arrow key, ignore it and increase slice by 1
+        if (event.key() in (QtCore.Qt.Key.Key_Right, QtCore.Qt.Key.Key_Home)):
+            event.ignore()
+            step_slice(self.Aself.vol, "Single Step Increase")
+            return
+
+        # If the key is the left arrow key, ignore it and decrease slice by 1
+        if (event.key() in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_End)):
+            event.ignore()
+            step_slice(self.Aself.vol, "Single Step Decrease")
+            return
+        
+        super().keyPressEvent(event)
 
 
 # -----------------------------------------------------------------
