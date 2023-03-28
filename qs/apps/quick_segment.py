@@ -5,6 +5,7 @@ import os
 import sys
 import time
 from pathlib import Path
+import numpy as np
 
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import Qt
@@ -141,10 +142,26 @@ class MainWindow(QtWidgets.QWidget):
         # Seg_layout.addWidget(self.seg_load_button)
         # Seg_layout.addWidget(self.seg_merge)
 
+
         # save button
         self.save_button = QtWidgets.QPushButton()
         self.save_button.setText('Save Points')
         self.save_button.clicked.connect(lambda: self.save_points(vol, seg_dir))
+        # views buttons layout
+        views_buttons_layout = QtWidgets.QHBoxLayout()
+        self.xy_button = QtWidgets.QPushButton()
+        self.xy_button.setText('XY')
+        self.xy_button.clicked.connect(lambda: self.show_view('xy'))
+        self.xz_button = QtWidgets.QPushButton()
+        self.xz_button.setText('XZ')
+        self.xz_button.clicked.connect(lambda: self.show_view('xz'))
+        self.yz_button = QtWidgets.QPushButton()
+        self.yz_button.setText('YZ')
+        self.yz_button.clicked.connect(lambda: self.show_view('yz'))
+        views_buttons_layout.addWidget(self.xy_button)
+        views_buttons_layout.addWidget(self.xz_button)
+        views_buttons_layout.addWidget(self.yz_button)
+
         # Show slice shadows toggel 
         self.show_shadows_toggle = QtWidgets.QCheckBox("Show Slice Shadows")
         self.show_shadows_toggle.setChecked(True)
@@ -178,6 +195,7 @@ class MainWindow(QtWidgets.QWidget):
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
         # ToolBar_Layout.addLayout(Seg_layout)
+        toolbar_layout.addLayout(views_buttons_layout)
         toolbar_layout.addWidget(self.undo_point_button)
         toolbar_layout.addWidget(self.clear_slice_button)
         toolbar_layout.addWidget(self.clear_all_button)
@@ -760,6 +778,29 @@ class MainWindow(QtWidgets.QWidget):
 
         self.update_slice(vol, self.slice_slider.value())
         return True
+    
+    def show_view(self, view):
+        vol_width = self.vol.shape[0]
+        vol_height = self.vol.shape[1]
+        vol_slices = self.vol.shape[2]
+
+        if view == 'xy':
+            self.update_slice(self.vol, self.slice_slider.value())
+            return
+        elif view == 'xz':
+            # XZ View
+            xs=np.tile(np.arange(0, vol_width), vol_slices)
+            ys=np.full(vol_slices * vol_width, 0)
+            zs=np.repeat(np.arange(0, vol_slices), vol_width)
+            #slice_img = self.vol[zs, ys, xs].reshape(vol_slices, vol_width).transpose()
+        elif view == 'yz':
+            # YZ View
+            xs=np.full(vol_slices * vol_height, 0)
+            ys=np.repeat(np.arange(0, vol_slices), vol_height)
+            zs=np.tile(np.arange(0, vol_slices), vol_height)
+            #slice_img = self.vol[zs, ys, xs].reshape(vol_height, vol_slices).transpose()
+
+        #self.ax.imshow(slice_img)
 
 
 # -----------------------------------------------------------------
