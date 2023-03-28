@@ -334,8 +334,12 @@ class MainWindow(QtWidgets.QWidget):
 
     # Loads the slice and its points
     def update_slice(self, vol, val):
-        if (self.perspective != 'xy')
-
+        if (self.perspective == 'xz'):
+            self.show_view('xz')
+            return
+        elif (self.perspective == 'yz'):
+            self.show_view('yz')
+            return
 
         self.ax.clear()
         self.ax.imshow(vol[val])
@@ -785,6 +789,7 @@ class MainWindow(QtWidgets.QWidget):
     
     def show_view(self, view):
         self.ax.clear()
+        
         vol_width = self.vol.shape[2]
         vol_height = self.vol.shape[1]
         vol_slices = self.vol.shape[0]
@@ -794,16 +799,22 @@ class MainWindow(QtWidgets.QWidget):
             self.update_slice(self.vol, self.slice_slider.value())
             return
         elif view == 'xz':
+            perspective_slider = self.slice_slider.value()/(vol_slices)
+            perspective_slider = int(perspective_slider * vol_height)
+
             # XZ View
             xs=np.tile(np.arange(0, vol_width), vol_slices)
-            ys=np.full(vol_slices * vol_width, 0)
+            ys=np.full(vol_slices * vol_width, perspective_slider)
             zs=np.repeat(np.arange(0, vol_slices), vol_width)
             slice_img = self.vol[zs, ys, xs].reshape(vol_slices, vol_width).transpose()
             self.perspective = 'xz'
         elif view == 'yz':
+            perspective_slider = self.slice_slider.value()/(vol_slices)
+            perspective_slider = int(perspective_slider * vol_width)
+
             # YZ View
-            xs=np.full(vol_slices * vol_height, 0)
-            ys=np.repeat(np.arange(0, vol_slices), vol_height)
+            xs=np.full(vol_slices * vol_height, perspective_slider)
+            ys=np.repeat(np.arange(0, vol_height), vol_slices)
             zs=np.tile(np.arange(0, vol_slices), vol_height)
             slice_img = self.vol[zs, ys, xs].reshape(vol_height, vol_slices).transpose()
             self.perspective = 'yz'
