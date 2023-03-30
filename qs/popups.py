@@ -1,7 +1,10 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import Qt
+import plotly.graph_objects as go
 import cv2 as cv
 import numpy as np
 from qs.math import find_sobel_edge
+from qs.interpolation import full_interpolation, verify_full_interpolation
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
@@ -100,6 +103,88 @@ class MyPopup(QtWidgets.QWidget):
     def update(self, img):
         self.ax.imshow(img)
         self.canvas.draw_idle()
-         
+
+
+class ViewPopUp(QtWidgets.QDialog):
+    def __init__(self, vol, seg):
+        super().__init__()
+        self.window_width = 600
+        self.window_height = 600
+        self.setMinimumSize(self.window_width, self.window_height)
+        self.setWindowTitle("View All Points")
+
+        # Store volume info
+        self.vol_height = vol.shape[1]
+        self.vol_width = vol.shape[2]
+        self.vol_slices = vol.shape[0]
+
+        # Set Matplotlib axes
+        self.canvas = FigCanvas(
+            plt.Figure(figsize=(8, 8), facecolor='#3d3d3d'))
+        self.ax = self.canvas.figure.subplots(subplot_kw={'projection':'3d'})
+        self.ax.set(facecolor='#3d3d3d')
+        self.ax.tick_params(labelcolor='white', colors='white')
+
+        # Slider
+        self.slice_slider = QtWidgets.QSlider(Qt.Orientation.Vertical)
+        self.slice_slider.setMinimum(0)
+        self.slice_slider.setMaximum(vol.shape[0] - 1)
+        self.slice_slider.valueChanged.connect(
+            lambda: self.show_slices(vol, self.slice_slider.value(), seg))
+
+        # Show first slice
+        self.show_slices(vol, 0, seg)
+
+        #Set Layout
+        layout = QtWidgets.QHBoxLayout()
+        self.setLayout(layout)
+
+        layout.addWidget(self.canvas)
+        layout.addWidget(self.slice_slider)
+
+
+    def draw_seg(self, seg):
+        """
+        Draws the segmentation points on the graph
+
+        :param seg: segmentation dictionary
+        """
+        # if (verify_full_interpolation(seg)):
+        #     interpolation = full_interpolation(seg)
+        #     for row in interpolation:
+        #         for point in row:
+        #             self.ax.scatter(point[0],point[1],point[2], c = 'yellow')
+
+        for slice in seg:
+            for point in seg[slice]:
+                self.ax.scatter(point[0],point[1],point[2], c = 'r', alpha=0.6)
+
+    def show_slices(self, vol, slice, seg):
+        """
+        Shows the slices of the volume on the 3D graph
+
+        :param vol: volume
+        :param slice: current slice on display
+        :param seg: segmentation data (only used to draw points)
+        """
+        self.ax.clear()
+        self.ax.set_zlim3d(0, self.vol_slices)
+        self.ax.set_ylim3d(-(self.vol_width-self.vol_height)/2, self.vol_height + (self.vol_width-self.vol_height)/2)
+        self.ax.set_xlim3d(0, self.vol_width)
+
+        # Find shape values
+        x, y = np.meshgrid(np.linspace(0, self.vol_width, self.vol_width), np.linspace(0, self.vol_height, self.vol_height))
+
+        #self.ax.imshow(x, y, vol[0], zdir='z')
+        #self.ax.plot_surface(X, Y, Z, rstride=1, cstride=1, facecolors=plt.cm.BrBG(vol[0]), shade=False)
+        offset = slice
+        self.ax.contourf(x, y, vol[slice],
+                         5,
+                         zdir='z',
+                         offset=offset,
+                         alpha=0.9)
+        
+        self.draw_seg(seg)
+        self.canvas.draw()
 
 

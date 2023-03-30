@@ -29,7 +29,7 @@ from qs.interpolation import (find_next_key,
                               find_normal_direction, 
                               partial_interpolation,
                               full_interpolation)
-from qs.popups import MyPopup
+from qs.popups import MyPopup, ViewPopUp
 from qs.math import find_min, find_sobel_edge, canny_edge
 
 
@@ -148,6 +148,12 @@ class MainWindow(QtWidgets.QWidget):
         self.save_button = QtWidgets.QPushButton()
         self.save_button.setText('Save Points')
         self.save_button.clicked.connect(lambda: self.save_points(vol, seg_dir))
+
+        # view button
+        self.view_button = QtWidgets.QPushButton()
+        self.view_button.setText('View all points')
+        self.view_button.clicked.connect(lambda: self.popup())
+
         # Show slice shadows toggel 
         self.show_shadows_toggle = QtWidgets.QCheckBox("Show Slice Shadows")
         self.show_shadows_toggle.setChecked(True)
@@ -280,6 +286,7 @@ class MainWindow(QtWidgets.QWidget):
         nonlinear_settings.hide()
 
         toolbar_layout.addWidget(interpolation_options)
+        toolbar_layout.addWidget(self.view_button)
         toolbar_layout.addWidget(self.save_button)
 
         # Pop window in case number of points is incorrect
@@ -863,9 +870,9 @@ class MainWindow(QtWidgets.QWidget):
         self.update_slice(self.vol, self.slice_slider.value())
 
     
-    def popup_advanced_settings(self):
-        self.advanced_settings_popup = MyPopup(self.vol[self.slice_slider.value()])
-        self.advanced_settings_popup.show()
+    def popup(self):
+        popup = ViewPopUp(self.vol, self.lines[self.active_line])
+        popup.exec()
         
 
 
