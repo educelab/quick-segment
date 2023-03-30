@@ -227,8 +227,6 @@ class MainWindow(QtWidgets.QWidget):
         self.xAxisLim = None
         self.yAxisLim = None
         self.pan_limit = False
-        self.global_xlim = self.vol[0].shape[1]
-        self.global_ylim = self.vol[0].shape[0]
 
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -246,8 +244,8 @@ class MainWindow(QtWidgets.QWidget):
             # get the current x and y limits
             cur_xlim = self.ax.get_xlim()
             cur_ylim = self.ax.get_ylim()
-            global_xlim = self.vol[0].shape[1]
-            global_ylim = self.vol[0].shape[0]
+            global_xlim = self.init_x_zoom[1]
+            global_ylim = self.init_y_zoom[0]
 
             zoom_limit = False
             
@@ -512,7 +510,7 @@ class MainWindow(QtWidgets.QWidget):
                 self.yAxisLim = self.ax.get_ylim()
 
                 if (self.xAxisLim[0] >= 0 and self.yAxisLim[1] >= 0 and 
-                self.xAxisLim[1] <= self.global_xlim and self.yAxisLim[0] <= self.global_ylim):
+                self.xAxisLim[1] <= self.init_x_zoom[1] and self.yAxisLim[0] <= self.init_y_zoom[0]):
                     # Enable pan
                     self.canvas.toolbar.press_pan(event)  
 
@@ -540,6 +538,8 @@ class MainWindow(QtWidgets.QWidget):
         # Save current values
         curr_xAxisLim = self.ax.get_xlim()
         curr_yAxisLim = self.ax.get_ylim()
+        global_xlim = self.init_x_zoom[1]
+        global_ylim = self.init_y_zoom[0]
 
         # If pan goes off the left side
         if (curr_xAxisLim[0] < 0):
@@ -574,14 +574,14 @@ class MainWindow(QtWidgets.QWidget):
             self.ax.set_ylim(curr_yAxisLim)
 
         # If pan goes off the right side
-        if (curr_xAxisLim[1] > self.global_xlim):
+        if (curr_xAxisLim[1] > global_xlim):
 
             # Save difference between the side off the screen and the limit to fix the opposing side
-            xdif = curr_xAxisLim[1] - self.global_xlim
+            xdif = curr_xAxisLim[1] - global_xlim
 
             # Adjust limits
             list_curr_xAxisLim = list(curr_xAxisLim)
-            list_curr_xAxisLim[1] = self.global_xlim
+            list_curr_xAxisLim[1] = global_xlim
             list_curr_xAxisLim[0] -= xdif
             curr_xAxisLim = tuple(list_curr_xAxisLim)
 
@@ -590,14 +590,14 @@ class MainWindow(QtWidgets.QWidget):
             self.ax.set_ylim(curr_yAxisLim)
 
         # If pan goes off the bottom
-        if (curr_yAxisLim[0] > self.global_ylim):
+        if (curr_yAxisLim[0] > global_ylim):
 
             # Save difference between the side off the screen and the limit to fix the opposing side
-            ydif = curr_yAxisLim[0] - self.global_ylim
+            ydif = curr_yAxisLim[0] - global_ylim
 
             # Adjust limits
             list_curr_yAxisLim = list(curr_yAxisLim)
-            list_curr_yAxisLim[0] = self.global_ylim
+            list_curr_yAxisLim[0] = global_ylim
             list_curr_yAxisLim[1] -= ydif
             curr_yAxisLim = tuple(list_curr_yAxisLim)
 
@@ -796,6 +796,10 @@ class MainWindow(QtWidgets.QWidget):
 
         if view == 'xy':
             self.perspective = 'xy'
+            self.init_x_zoom = (-0.5, vol_width - 0.5)
+            self.init_y_zoom = (vol_height -0.5, -0.5)
+            self.zoom_width = self.init_x_zoom
+            self.zoom_height = self.init_y_zoom
             self.update_slice(self.vol, self.slice_slider.value())
             return
         elif view == 'xz':
@@ -820,6 +824,8 @@ class MainWindow(QtWidgets.QWidget):
             self.perspective = 'yz'
 
         self.ax.imshow(slice_img)
+        self.init_x_zoom = self.ax.get_xlim()
+        self.init_y_zoom = self.ax.get_ylim()
         self.canvas.draw_idle()
 
 
