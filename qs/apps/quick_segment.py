@@ -5,6 +5,7 @@ import os
 import sys
 import time
 from pathlib import Path
+import numpy as np
 
 import numpy as np
 from PyQt6 import QtCore, QtWidgets
@@ -153,6 +154,21 @@ class MainWindow(QtWidgets.QWidget):
         self.view_button = QtWidgets.QPushButton()
         self.view_button.setText('View all points')
         self.view_button.clicked.connect(lambda: self.popup())
+        # views buttons layout
+        self.perspective = 'xy'
+        views_buttons_layout = QtWidgets.QHBoxLayout()
+        self.xy_button = QtWidgets.QPushButton()
+        self.xy_button.setText('XY')
+        self.xy_button.clicked.connect(lambda: self.show_view('xy'))
+        self.xz_button = QtWidgets.QPushButton()
+        self.xz_button.setText('XZ')
+        self.xz_button.clicked.connect(lambda: self.show_view('xz'))
+        self.yz_button = QtWidgets.QPushButton()
+        self.yz_button.setText('YZ')
+        self.yz_button.clicked.connect(lambda: self.show_view('yz'))
+        views_buttons_layout.addWidget(self.xy_button)
+        views_buttons_layout.addWidget(self.xz_button)
+        views_buttons_layout.addWidget(self.yz_button)
 
         # Show slice shadows toggel 
         self.show_shadows_toggle = QtWidgets.QCheckBox("Show Slice Shadows")
@@ -268,6 +284,7 @@ class MainWindow(QtWidgets.QWidget):
         segmentation_options = QtWidgets.QGroupBox()
         segmentation_opt_layout = QtWidgets.QVBoxLayout()
         segmentation_options.setLayout(segmentation_opt_layout)
+        segmentation_opt_layout.addLayout(views_buttons_layout)
         segmentation_opt_layout.addWidget(self.undo_point_button)
         segmentation_opt_layout.addWidget(self.clear_slice_button)
         segmentation_opt_layout.addWidget(self.clear_all_button)
@@ -420,6 +437,13 @@ class MainWindow(QtWidgets.QWidget):
 
     # Loads the slice and its points
     def update_slice(self, vol, val):
+        if (self.perspective == 'xz'):
+            self.show_view('xz')
+            return
+        elif (self.perspective == 'yz'):
+            self.show_view('yz')
+            return
+
         self.ax.clear()
         if (self.show_edges_check.isChecked()):
             self.ax.imshow(canny_edge(vol[val], int(self.edge_threshold1.text()), int(self.edge_threshold2.text()), dilation=2), cmap=self.colormap)
@@ -514,7 +538,7 @@ class MainWindow(QtWidgets.QWidget):
             
             # Add a point if the limits have not changed since the press action
             if self.xAxisLim == curr_xAxisLim and self.yAxisLim == curr_yAxisLim:
-                if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
+                if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == '') and (self.perspective == 'xy'):
                     slice_num = self.slice_slider.value()
                     new_point = [event.xdata, event.ydata, slice_num]
                     self.lines[self.active_line].setdefault(slice_num, []).append(
@@ -874,6 +898,40 @@ class MainWindow(QtWidgets.QWidget):
         popup = ViewPopUp(self.vol, self.lines[self.active_line])
         popup.exec()
         
+    def show_view(self, view):
+        self.ax.clear()
+        
+        vol_width = self.vol.shape[2]
+        vol_height = self.vol.shape[1]
+        vol_slices = self.vol.shape[0]
+
+        if view == 'xy':
+            self.perspective = 'xy'
+            self.update_slice(self.vol, self.slice_slider.value())
+            return
+        elif view == 'xz':
+            perspective_slider = self.slice_slider.value()/(vol_slices)
+            perspective_slider = int(perspective_slider * vol_height)
+
+            # XZ View
+            xs=np.tile(np.arange(0, vol_width), vol_slices)
+            ys=np.full(vol_slices * vol_width, perspective_slider)
+            zs=np.repeat(np.arange(0, vol_slices), vol_width)
+            slice_img = self.vol[zs, ys, xs].reshape(vol_slices, vol_width).transpose()
+            self.perspective = 'xz'
+        elif view == 'yz':
+            perspective_slider = self.slice_slider.value()/(vol_slices)
+            perspective_slider = int(perspective_slider * vol_width)
+
+            # YZ View
+            xs=np.full(vol_slices * vol_height, perspective_slider)
+            ys=np.repeat(np.arange(0, vol_height), vol_slices)
+            zs=np.tile(np.arange(0, vol_slices), vol_height)
+            slice_img = self.vol[zs, ys, xs].reshape(vol_height, vol_slices).transpose()
+            self.perspective = 'yz'
+
+        self.ax.imshow(slice_img)
+        self.canvas.draw_idle()
 
 
 # -----------------------------------------------------------------
