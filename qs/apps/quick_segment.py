@@ -6,11 +6,13 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox
 from matplotlib import pyplot as plt
+from matplotlib import cm, colors
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
 
@@ -19,10 +21,16 @@ import qs.resources
 from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
                      load_json, load_vcps, write_metadata, write_ordered_vcps,
                      write_seg_json)
-from qs.interpolation import (find_next_key, find_previous_key,
-                              full_interpolation, interpolate_point,
-                              verify_full_interpolation, verify_interpolation)
-from qs.math import find_min
+from qs.interpolation import (find_next_key, 
+                              find_previous_key,
+                              interpolate_point,
+                              verify_full_interpolation, 
+                              verify_partial_interpolation, 
+                              find_normal_direction, 
+                              partial_interpolation,
+                              full_interpolation)
+from qs.popups import MyPopup
+from qs.math import find_min, find_sobel_edge, canny_edge
 
 
 # -------------------------------------------------------------------
@@ -40,6 +48,7 @@ class MainWindow(QtWidgets.QWidget):
         self.window_height = 800
         self.setMinimumSize(self.window_width, self.window_height)
         self.setWindowTitle("Interpolation Segmentation")
+        self.colormap = colors.ListedColormap(cm.get_cmap('bone', 512)(np.linspace(0.15, 0.85, 256)))
         self.vol = vol
 
         # ------------------------------Window GUI-----------------------------
@@ -128,19 +137,13 @@ class MainWindow(QtWidgets.QWidget):
         slice_layout.addLayout(step_layout)
 
         # -----------------------------Tool Bar Layout-------------------------------
-        # segmentation loader
+        # segmentation loader -------------------------------------------------------
         self.segmentation_list = QtWidgets.QListWidget()
         fill_seg_list(self, vol, seg_dir, self.segmentation_list)
         self.segmentation_list.itemClicked.connect(
             lambda uuid: self.handle_list_click(seg_dir, uuid))
-
-        # Segmentation load button
-        # Seg_layout = QtWidgets.QHBoxLayout()
-        # self.seg_merge = QtWidgets.QPushButton('Merge')
-        # self.seg_merge.clicked.connect(lambda: self.merge_segmentations(vol, seg_dir))
-        # Seg_layout.addWidget(self.seg_load_button)
-        # Seg_layout.addWidget(self.seg_merge)
-
+        
+        # Segmentation settings -----------------------------------------------------
         # save button
         self.save_button = QtWidgets.QPushButton()
         self.save_button.setText('Save Points')
@@ -174,14 +177,109 @@ class MainWindow(QtWidgets.QWidget):
         self.clear_all_button = QtWidgets.QPushButton()
         self.clear_all_button.setText('Clear All')
         self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
+
+        # interpolation settings ---------------------------------------------------
+        interpolation_options = QtWidgets.QGroupBox()
+        interpolation_opt_layout = QtWidgets.QVBoxLayout()
+        interpolation_options.setLayout(interpolation_opt_layout)
+        nonlinear_settings = QtWidgets.QFrame()
+        nonlinear_settings_layout = QtWidgets.QVBoxLayout()
+        nonlinear_settings.setLayout(nonlinear_settings_layout)
+
+        # Interpolation type dropdown
+        self.interpolation_type_dropdown = QtWidgets.QComboBox()
+        self.interpolation_type_dropdown.addItems(["linear", "non-linear"])
+        self.interpolation_type_dropdown.activated.connect(
+            lambda: self.interpolation_type_dropdown_handler(nonlinear_settings))
+        interpolation_type_layout = QtWidgets.QHBoxLayout()
+        interpolation_type_layout.addWidget(QtWidgets.QLabel("Interpolation type:"))
+        interpolation_type_layout.addWidget(self.interpolation_type_dropdown)
+
+        # Interpolation advanced settings pop up
+        self.advanced_settings_button = QtWidgets.QPushButton()
+        self.advanced_settings_button.setText('Advanced Settings')
+        self.advanced_settings_button.clicked.connect(lambda: self.popup_advanced_settings())
+
+        # Non linear settings layout ----------|
+        # Info box
+        info_box = QtWidgets.QLabel("?")
+        info_box.setFixedSize(16, 16)
+        info_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info_box.setStyleSheet("background-color: lightgray; border-radius: 8px; color: black")
+        info_box.setToolTip("This non-linear interpolation adjusts each point based on edges of\n"
+                            "the image. It centers the point so it is equidistant to edges on both\n"
+                            "sides. You can customize:\n\n"
+                            "- Lower edge threshold: the lowest value that is considered an edge\n"
+                            "- Higher edge threshold: the highest value that is considered an edge\n"
+                            "- Max distance of edge: the maximum distance between the edge and the\n"
+                            "  point. If no edges are found in this distance, it leaves the point\n"
+                            "  in the same spot.")
+
+        # Show Canny edges button
+        self.show_edges_check = QtWidgets.QCheckBox("Show Canny Edges")
+        self.show_edges_check.setChecked(False)
+        self.show_edges_check.stateChanged.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        
+        # Draw Normals
+        self.draw_normals = QtWidgets.QCheckBox("Draw normals")
+        self.draw_normals.setChecked(True)
+        self.draw_normals.stateChanged.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        
+        #Edge thresholds 
+        self.edge_threshold1 = QtWidgets.QLineEdit()
+        self.edge_threshold1.setMaxLength(5)
+        self.edge_threshold1.setText("100")
+        self.edge_threshold1.returnPressed.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        edge_threshold1_layout = QtWidgets.QHBoxLayout()
+        edge_threshold1_layout.addWidget(QtWidgets.QLabel("Lower edge threshold:"))
+        edge_threshold1_layout.addWidget(self.edge_threshold1)
+        self.edge_threshold2 = QtWidgets.QLineEdit()
+        self.edge_threshold2.setMaxLength(5)
+        self.edge_threshold2.setText("120")
+        self.edge_threshold2.returnPressed.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        edge_threshold2_layout = QtWidgets.QHBoxLayout()
+        edge_threshold2_layout.addWidget(QtWidgets.QLabel("Higher edge threshold:"))
+        edge_threshold2_layout.addWidget(self.edge_threshold2)
+
+        # Edge search limit
+        self.edge_search_limit = QtWidgets.QLineEdit()
+        self.edge_search_limit.setMaxLength(5)
+        self.edge_search_limit.setText("40")
+        self.edge_search_limit.returnPressed.connect(
+            lambda: self.update_slice(vol, self.slice_slider.value()))
+        edge_search_limit_layout = QtWidgets.QHBoxLayout()
+        edge_search_limit_layout.addWidget(QtWidgets.QLabel("Max distance of edge:"))
+        edge_search_limit_layout.addWidget(self.edge_search_limit)
+
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
-        # ToolBar_Layout.addLayout(Seg_layout)
-        toolbar_layout.addWidget(self.undo_point_button)
-        toolbar_layout.addWidget(self.clear_slice_button)
-        toolbar_layout.addWidget(self.clear_all_button)
-        toolbar_layout.addWidget(self.show_shadows_toggle)
+        
+        segmentation_options = QtWidgets.QGroupBox()
+        segmentation_opt_layout = QtWidgets.QVBoxLayout()
+        segmentation_options.setLayout(segmentation_opt_layout)
+        segmentation_opt_layout.addWidget(self.undo_point_button)
+        segmentation_opt_layout.addWidget(self.clear_slice_button)
+        segmentation_opt_layout.addWidget(self.clear_all_button)
+        segmentation_opt_layout.addWidget(self.show_shadows_toggle)
+        toolbar_layout.addWidget(segmentation_options)
+
+        # Interpolation type label-dropdown pair
+        interpolation_opt_layout.addLayout(interpolation_type_layout)
+        nonlinear_settings_layout.addWidget(info_box)
+        nonlinear_settings_layout.addLayout(edge_threshold1_layout)
+        nonlinear_settings_layout.addLayout(edge_threshold2_layout)
+        nonlinear_settings_layout.addLayout(edge_search_limit_layout)
+        nonlinear_settings_layout.addWidget(self.draw_normals)
+        nonlinear_settings_layout.addWidget(self.show_edges_check)
+        interpolation_opt_layout.addWidget(nonlinear_settings)
+        nonlinear_settings.hide()
+
+        toolbar_layout.addWidget(interpolation_options)
         toolbar_layout.addWidget(self.save_button)
 
         # Pop window in case number of points is incorrect
@@ -316,14 +414,19 @@ class MainWindow(QtWidgets.QWidget):
     # Loads the slice and its points
     def update_slice(self, vol, val):
         self.ax.clear()
-        self.ax.imshow(vol[val])
+        if (self.show_edges_check.isChecked()):
+            self.ax.imshow(canny_edge(vol[val], int(self.edge_threshold1.text()), int(self.edge_threshold2.text()), dilation=2), cmap=self.colormap)
+        else:
+            self.ax.imshow(vol[val])
 
+        # Set the zoom
         self.ax.set_xlim(self.zoom_width)
         self.ax.set_ylim(self.zoom_height)
 
-        # update the slice index box
+        # Update the slice index box
         self.slice_index.setText(str(val))
 
+        # For each open segmentation in the list
         for uuid in self.lines:
             lines = self.lines[uuid]
 
@@ -365,6 +468,7 @@ class MainWindow(QtWidgets.QWidget):
                     self.ax.add_artist(
                         plt.Circle((point[0], point[1]), circle_size,
                                     facecolor='none', edgecolor='red'))
+
                 self.ax.add_artist(
                     plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
                                 3.5, color='red'))
@@ -373,32 +477,16 @@ class MainWindow(QtWidgets.QWidget):
                                 circle_size, facecolor='none', edgecolor='red'))
 
             # drawing the interpolated points on slices between keyslices
-            elif verify_interpolation(int(val), lines):
-                previous_key = find_previous_key(int(val), lines)
-                next_key = find_next_key(int(val), lines)
-                point = interpolate_point(int(val), previous_key[0],
-                                          next_key[0])
-                for i in range(0, len(previous_key) - 1):
-                    next_point = interpolate_point(int(val),
-                                                   previous_key[i + 1],
-                                                   next_key[i + 1])
-                    self.ax.plot([point[0], next_point[0]],
-                                 [point[1], next_point[1]], color='yellow')
-                    self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), 3.5, color='yellow'))
-                    self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), circle_size,
-                                   facecolor='none', edgecolor='yellow'))
-                    point = next_point
-
-                last_point = interpolate_point(int(val), previous_key[-1],
-                                               next_key[-1])
-                self.ax.add_artist(
-                    plt.Circle((last_point[0], last_point[1]), 3.5,
-                               color='yellow'))
-                self.ax.add_artist(
-                    plt.Circle((last_point[0], last_point[1]), circle_size,
-                               facecolor='none', edgecolor='yellow'))
+            elif verify_partial_interpolation(int(val), lines):
+                partial_interpolation(self.ax, lines, int(val), 
+                                      type=self.interpolation_type_dropdown.currentText(), 
+                                      vol=vol,
+                                      draw_edges=self.draw_normals.isChecked(),
+                                      edge_threshold1=int(self.edge_threshold1.text()), 
+                                      edge_threshold2=int(self.edge_threshold2.text()),
+                                      edge_search_limit=int(self.edge_search_limit.text()),
+                                      circle_size=circle_size
+                                      )
 
         self.canvas.draw_idle()
 
@@ -720,7 +808,13 @@ class MainWindow(QtWidgets.QWidget):
             self.incorrect_points.exec()
             return
         uuid = get_date()
-        interpolation = full_interpolation(self.lines[self.active_line])
+        interpolation = full_interpolation(self.lines[self.active_line], 
+                                           type=self.interpolation_type_dropdown.currentText(), 
+                                           vol=vol,
+                                           edge_threshold1=int(self.edge_threshold1.text()), 
+                                           edge_threshold2=int(self.edge_threshold2.text()),
+                                            edge_search_limit=int(self.edge_search_limit.text()),
+                                           )
         write_ordered_vcps(get_segmentation_dir(seg_dir, uuid), interpolation)
         write_metadata(get_segmentation_dir(seg_dir, uuid), uuid)
         write_seg_json(get_segmentation_dir(seg_dir, uuid),
@@ -760,6 +854,19 @@ class MainWindow(QtWidgets.QWidget):
 
         self.update_slice(vol, self.slice_slider.value())
         return True
+    
+    def interpolation_type_dropdown_handler(self, item):
+        if(self.interpolation_type_dropdown.currentText() == 'linear'):
+            item.hide()
+        else:
+            item.show()
+        self.update_slice(self.vol, self.slice_slider.value())
+
+    
+    def popup_advanced_settings(self):
+        self.advanced_settings_popup = MyPopup(self.vol[self.slice_slider.value()])
+        self.advanced_settings_popup.show()
+        
 
 
 # -----------------------------------------------------------------
