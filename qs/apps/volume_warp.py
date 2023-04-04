@@ -199,7 +199,8 @@ class WarpWindow(QtWidgets.QWidget):
         # #storage of moved points for warp
         self.active_point = ([-1, -1, -1, -1])
         self.gridSize = 10
-        self.pointLoc = ([]) #list that will hold all of the og and moved points locations
+        self.ogPointLoc = ([]) #list that will hold all of the og point locations
+        self.newPointLoc = ([]) #list that will hold all of the new point locations
         
 
         # ---------------------------Segmentation Point Drawing---------------------------
@@ -231,18 +232,17 @@ class WarpWindow(QtWidgets.QWidget):
                             plt.Circle([i, j], 3.5, color="yellow")
                         )
                         
-                    temp = self.active_point.copy()
-                    temp[0] = i
-                    temp[1] = j
-                    self.pointLoc.append(temp)
+                    self.ogPointLoc.append([i,j])
+                    self.newPointLoc.append([-1,-1])
                     
                 else:
+                   
                     # if the point has been moved
-                    if self.pointLoc[count][3] != -1:
-                        self.ax.add_artist(plt.Circle([self.pointLoc[count][2], self.pointLoc[count][3]], 3.5, color="blue"))
+                    if self.newPointLoc[count][0] != -1:
+                        self.ax.add_artist(plt.Circle([self.newPointLoc[count][0], self.newPointLoc[count][1]], 3.5, color="blue"))
                     else:
-                        self.ax.add_artist(plt.Circle([self.pointLoc[count][0], self.pointLoc[count][1]], 3.5, color="yellow"))
-                
+                        self.ax.add_artist(plt.Circle([self.ogPointLoc[count][0], self.ogPointLoc[count][1]], 3.5, color="yellow"))
+
                 count = count + 1
 
         self.canvas.draw_idle()
@@ -295,9 +295,6 @@ class WarpWindow(QtWidgets.QWidget):
         return min_dist[0]
 
 
-
-
-    
     #--------------------------Image Warping----------------------^
 
     #----------------------------Mouse Functions----------------------------v
@@ -359,16 +356,12 @@ class WarpWindow(QtWidgets.QWidget):
                 if(self.active_point[0] == -1):
                     print("You must choose a point to move first")
                 else:
-                    index = self.pointLoc.index(self.active_point)
                     print("Moving Point: ", self.active_point)
 
                     #moving point to where the person clicked
                     point = ([event.xdata, event.ydata])
                     
-                    self.pointLoc[index][2] = point[0]
-                    self.pointLoc[index][3] = point[1]
-
-
+                    #moving choosen point and saving new location in newPointLoc
                     self.set_active(1, point)
 
             
@@ -377,13 +370,14 @@ class WarpWindow(QtWidgets.QWidget):
 
                 xbounds = self.getBounds(int(vol.shape_x/self.gridSize), event.xdata)
                 ybounds = self.getBounds(int(vol.shape_y/self.gridSize), event.ydata)
+                
                 surrounding_points = ([ [xbounds[0], ybounds[0]], [xbounds[1],ybounds[0]], [xbounds[0], ybounds[1]], [xbounds[1], ybounds[1]] ])
                 
                 closest_point = self.getClosestPoint(surrounding_points, [event.xdata, event.ydata])
                 
                 #set the point as active and save loaction in the pointLoc
                 self.set_active(0, closest_point) #og point position
-                self.set_active(1, closest_point) #moved point position
+                # self.set_active(1, [self.active_point[0], self.active_point[1]]) #moved point position
 
                 self.canvas.draw_idle()
 
@@ -491,20 +485,28 @@ class WarpWindow(QtWidgets.QWidget):
         if pos == 0:
             self.active_point[0] = point[0]
             self.active_point[1] = point[1]
+           
+            # checking if previously moved 
+            index = self.ogPointLoc.index([point[0], point[1]]) #finding location in og point array
+            if self.newPointLoc[index][0] == -1:
+                self.newPointLoc[index][0] = point[0]
+                self.newPointLoc[index][1] = point[1]
+            
+            self.active_point[2] = self.newPointLoc[index][0]
+            self.active_point[3] = self.newPointLoc[index][1]
+
         #moved point loc
         elif pos == 1:
             self.active_point[2] = point[0]
             self.active_point[3] = point[1]
 
             #updating pointLoc info
-            for sublist in self.pointLoc:
-                if ((self.active_point[0] == sublist[0]) and (self.active_point[1] == sublist[1])):
-                    sublist[2] = point[0]
-                    sublist[3] = point[1]
-                    print("found'em")
-                    print("Points List: ", sublist)
-                    print("Active Point: ", self.active_point)
-                        
+            index = self.ogPointLoc.index([self.active_point[0], self.active_point[1]]) #finding location in og point array
+            self.newPointLoc[index][0] = point[0]
+            self.newPointLoc[index][1] = point[1]
+            print("found'em")
+            print("Points List: ", self.newPointLoc[index])
+            print("Active Point: ", self.active_point)
 
 
         self.update_slice(self.vol, self.slice_slider.value())
