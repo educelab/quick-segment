@@ -447,66 +447,81 @@ class WarpLineWindow(QtWidgets.QWidget):
             else:
                 self.key_slice_drop_down.setCurrentText(str(val))
 
-            # loading in the points ghost (preview)
-            if self.show_shadows_toggle.isChecked() and len(lines) != 0:
-                # putting in shadow for the previous key slice
-                last_slice = find_previous_key(int(val),
-                                               lines)  # previous key slice shadow
-                if last_slice != -1:
-                    self.draw_shadow(uuid, 'black', last_slice[0][2])
 
-                # putting in the shadow for the next key slice
-                next_slice = find_next_key(int(val),
-                                           lines)  # next key slice shadow
-                if next_slice != -1:
-                    self.draw_shadow(uuid, 'white', next_slice[0][2])
+            # # loading in the points ghost (preview)
+            # if self.show_shadows_toggle.isChecked() and len(lines) != 0:
+            #     # putting in shadow for the previous key slice
+            #     last_slice = find_previous_key(int(val),
+            #                                    lines)  # previous key slice shadow
+            #     if last_slice != -1:
+            #         self.draw_shadow(uuid, 'black', last_slice[0][2])
 
-            # loading in the points
-            if int(val) in lines:
-                for i in range(len(lines[int(val)]) - 1):
-                    point = lines[int(val)][i]
-                    next_point = lines[int(val)][i + 1]
-                    self.ax.plot([point[0], next_point[0]],
-                                    [point[1], next_point[1]], color='red')
-                    self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), 3.5, color='red'))
-                    self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), circle_size,
-                                    facecolor='none', edgecolor='red'))
-                self.ax.add_artist(
-                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
-                                3.5, color='red'))
-                self.ax.add_artist(
-                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
-                                circle_size, facecolor='none', edgecolor='red'))
+            #     # putting in the shadow for the next key slice
+            #     next_slice = find_next_key(int(val),
+            #                                lines)  # next key slice shadow
+            #     if next_slice != -1:
+            #         self.draw_shadow(uuid, 'white', next_slice[0][2])
 
-            # drawing the interpolated points on slices between keyslices
-            elif verify_interpolation(int(val), lines):
-                previous_key = find_previous_key(int(val), lines)
-                next_key = find_next_key(int(val), lines)
-                point = interpolate_point(int(val), previous_key[0],
-                                          next_key[0])
-                for i in range(0, len(previous_key) - 1):
-                    next_point = interpolate_point(int(val),
-                                                   previous_key[i + 1],
-                                                   next_key[i + 1])
-                    self.ax.plot([point[0], next_point[0]],
-                                 [point[1], next_point[1]], color='yellow')
-                    self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), 3.5, color='yellow'))
-                    self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), circle_size,
-                                   facecolor='none', edgecolor='yellow'))
-                    point = next_point
+            #-----------Loading in the Warping points--------------
+            for pos in self.og4points:
+                self.ax.add_artist(
+                    plt.Circle((pos[0], pos[1]), 3.5, color='red'))
+                self.ax.add_artist(
+                    plt.Circle((pos[0], pos[1]), circle_size,
+                            facecolor='none', edgecolor='red'))
+            for pos in self.new4points:
+                self.ax.add_artist(
+                    plt.Circle((pos[0], pos[1]), 3.5, color='blue'))
+                self.ax.add_artist(
+                    plt.Circle((pos[0], pos[1]), circle_size,
+                            facecolor='none', edgecolor='blue'))
 
-                last_point = interpolate_point(int(val), previous_key[-1],
-                                               next_key[-1])
-                self.ax.add_artist(
-                    plt.Circle((last_point[0], last_point[1]), 3.5,
-                               color='yellow'))
-                self.ax.add_artist(
-                    plt.Circle((last_point[0], last_point[1]), circle_size,
-                               facecolor='none', edgecolor='yellow'))
+            # # loading in the points
+            # if int(val) in lines:
+            #     for i in range(len(lines[int(val)]) - 1):
+            #         point = lines[int(val)][i]
+            #         next_point = lines[int(val)][i + 1]
+            #         self.ax.plot([point[0], next_point[0]],
+            #                         [point[1], next_point[1]], color='red')
+            #         self.ax.add_artist(
+            #             plt.Circle((point[0], point[1]), 3.5, color='red'))
+            #         self.ax.add_artist(
+            #             plt.Circle((point[0], point[1]), circle_size,
+            #                         facecolor='none', edgecolor='red'))
+            #     self.ax.add_artist(
+            #         plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
+            #                     3.5, color='red'))
+            #     self.ax.add_artist(
+            #         plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
+            #                     circle_size, facecolor='none', edgecolor='red'))
+
+            # # drawing the interpolated points on slices between keyslices
+            # elif verify_interpolation(int(val), lines):
+            #     previous_key = find_previous_key(int(val), lines)
+            #     next_key = find_next_key(int(val), lines)
+            #     point = interpolate_point(int(val), previous_key[0],
+            #                               next_key[0])
+            #     for i in range(0, len(previous_key) - 1):
+            #         next_point = interpolate_point(int(val),
+            #                                        previous_key[i + 1],
+            #                                        next_key[i + 1])
+            #         self.ax.plot([point[0], next_point[0]],
+            #                      [point[1], next_point[1]], color='yellow')
+            #         self.ax.add_artist(
+            #             plt.Circle((point[0], point[1]), 3.5, color='yellow'))
+            #         self.ax.add_artist(
+            #             plt.Circle((point[0], point[1]), circle_size,
+            #                        facecolor='none', edgecolor='yellow'))
+            #         point = next_point
+
+            #     last_point = interpolate_point(int(val), previous_key[-1],
+            #                                    next_key[-1])
+            #     self.ax.add_artist(
+            #         plt.Circle((last_point[0], last_point[1]), 3.5,
+            #                    color='yellow'))
+            #     self.ax.add_artist(
+            #         plt.Circle((last_point[0], last_point[1]), circle_size,
+            #                    facecolor='none', edgecolor='yellow'))
 
         self.canvas.draw_idle()
 
@@ -625,6 +640,10 @@ class WarpLineWindow(QtWidgets.QWidget):
         else:
             print("Slice already empty")
 
+        #------clearing warping points------
+        self.og4points.clear()
+        self.new4points.clear()
+
         # Clear slice from key slices bar
         self.key_slice_drop_down.setCurrentText("~")
         # find the index of the slice to be removed in the key slice dropdown list
@@ -647,8 +666,14 @@ class WarpLineWindow(QtWidgets.QWidget):
                 #if there are no more points on the slice, remove the keyslice from the list
                 if (length == 1):
                     self.lines[self.active_line].pop(slice_num)
-                
-                self.update_slice(vol, slice_num)
+
+        #--------undoing warping points------------
+        if len(self.new4points) > 0:
+            self.new4points.pop()
+        else:
+            self.og4points.pop()
+
+        self.update_slice(vol, slice_num)
 
     def clear_all(self, vol):
         # deletes the dictionary slice along with its points
