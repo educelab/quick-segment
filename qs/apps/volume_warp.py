@@ -201,6 +201,10 @@ class WarpWindow(QtWidgets.QWidget):
         self.gridSize = 10
         self.ogPointLoc = ([]) #list that will hold all of the og point locations
         self.newPointLoc = ([]) #list that will hold all of the new point locations
+
+        #temporary list for the 4 points used to warp the image with openCV
+        self.og4points = ([])
+        self.new4points = ([])
         
 
         # ---------------------------Segmentation Point Drawing---------------------------
@@ -266,9 +270,23 @@ class WarpWindow(QtWidgets.QWidget):
         #convert to Numpy array
         ogNParray = np.array(self.ogPointLoc, np.float32)
         newNParray = np.array(self.newPointLoc, np.float32)
+        
+        #matrix = cv2.getPerspectiveTransform(ogNParray, newNParray) #-----> current problem is that the warp function is for 4 points only 
 
-        matrix = cv2.getPerspectiveTransform(ogNParray, newNParray) #-----> current problem is that the warp function is for 4 points only 
-
+        #cleaning up moved points arrays to contatin exactly 4 points 
+        temp = 0
+        while len(self.og4points) > 4:
+            self.og4points.pop()
+            self.new4points.pop()
+        while len(self.og4points) < 4:
+            self.og4points.append(self.ogPointLoc[temp])
+            self.new4points.append(self.newPointLoc[temp])
+            temp = temp + 1
+        
+        og4np = np.array(self.og4points, np.float32)
+        new4np = np.array(self.new4points, np.float32)
+        matrix = cv2.getPerspectiveTransform(og4np, new4np)
+        
         warpedImage = cv2.warpPerspective(vol[self.slice_slider.value()], matrix, (695, 551))
         cv2.imshow("og Image", vol[self.slice_slider.value()])
         cv2.imshow("warped image", warpedImage)
@@ -523,9 +541,10 @@ class WarpWindow(QtWidgets.QWidget):
             index = self.ogPointLoc.index([self.active_point[0], self.active_point[1]]) #finding location in og point array
             self.newPointLoc[index][0] = point[0]
             self.newPointLoc[index][1] = point[1]
-            # print("found'em")
-            # print("Points List: ", self.newPointLoc[index])
-            # print("Active Point: ", self.active_point)
+           
+            #when moving the 4 points used for warping
+            self.og4points.append([self.active_point[0], self.active_point[1]])
+            self.new4points.append([point[0], point[1]])
 
 
         self.update_slice(self.vol, self.slice_slider.value())
