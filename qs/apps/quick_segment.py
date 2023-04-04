@@ -18,7 +18,8 @@ from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
 import qs.resources
 
 import qs.apps.segmentation as SegPage
-import qs.apps.volume_warp as WarpPage
+import qs.apps.volume_warp_grid as WarpGridPage
+import qs.apps.volume_warp_line as WarpLinePage
 
 from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
                      load_json, load_vcps, write_metadata, write_ordered_vcps,
@@ -52,19 +53,22 @@ class StackedWindow(QtWidgets.QWidget):
         self.Stack = QtWidgets.QStackedWidget(self)
         #making stack widgets from each window class
         self.segment_page = SegPage.SegmentWindow(vol, seg_dir, initial_slice)
-        self.warp_page = WarpPage.WarpWindow(vol, seg_dir, initial_slice)
+        self.warp_grid_page = WarpGridPage.WarpGridWindow(vol, seg_dir, initial_slice)
+        self.warp_line_page = WarpLinePage.WarpLineWindow(vol, seg_dir, initial_slice)
         #adding widgets to the stack
         self.Stack.addWidget(self.segment_page)
-        self.Stack.addWidget(self.warp_page)
+        self.Stack.addWidget(self.warp_grid_page)
+        self.Stack.addWidget(self.warp_line_page)
 
         #self.Stack.setCurrentWidget(self.segment_page)
-        self.Stack.setCurrentWidget(self.warp_page)
+        self.Stack.setCurrentWidget(self.warp_grid_page)
 
         #--------------------------menu bar---------------------
         self.menubar = QMenuBar()
         self.pages = self.menubar.addMenu('Pages')
         self.pages.addAction('Segmentation', lambda: self.Stack.setCurrentWidget(self.segment_page))
-        self.pages.addAction('Warping', lambda: self.Stack.setCurrentWidget(self.warp_page))
+        self.pages.addAction('Warping: Grid', lambda: self.Stack.setCurrentWidget(self.warp_grid_page))
+        self.pages.addAction('Warping: Line', lambda: self.Stack.setCurrentWidget(self.warp_line_page))
 
     #sets the window specs
     def window_set(self, title):

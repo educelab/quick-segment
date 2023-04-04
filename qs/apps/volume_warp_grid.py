@@ -1,4 +1,4 @@
-#Volume Warp Page within the GUI
+#Volume Warp Grid Page within the GUI
 from __future__ import annotations
 
 import numpy as np
@@ -29,9 +29,9 @@ from qs.interpolation import (find_next_key, find_previous_key,
 from qs.math import (find_min, calculate_sq_distance)
 
 # -------------------------------------------------------------------
-#                             SEGMENT WINDOW CLASS
+#                             WARP WINDOW GRID CLASS
 # -------------------------------------------------------------------
-class WarpWindow(QtWidgets.QWidget):
+class WarpGridWindow(QtWidgets.QWidget):
     ax = None
     bar = None
 
