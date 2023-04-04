@@ -254,7 +254,26 @@ class WarpWindow(QtWidgets.QWidget):
         @param Volume
         @param segmentation directory 
         """
-        print("WAaAaaaARrrrRRppPpp")
+        print("WAaAaaaARrrrRRppPppIIiiiIInnnnNNNNnnnGGGGgGGGgggggg")
+
+        #clean the arrays up to prevent -1's
+        count = 0
+        for point in self.newPointLoc: 
+            if point[0] == -1:
+                point[0] = self.ogPointLoc[count][0]
+                point[1] = self.ogPointLoc[count][1]
+            count = count + 1
+        #convert to Numpy array
+        ogNParray = np.array(self.ogPointLoc, np.float32)
+        newNParray = np.array(self.newPointLoc, np.float32)
+
+        matrix = cv2.getPerspectiveTransform(ogNParray, newNParray) #-----> current problem is that the warp function is for 4 points only 
+
+        warpedImage = cv2.warpPerspective(vol[self.slice_slider.value()], matrix, (695, 551))
+        cv2.imshow("og Image", vol[self.slice_slider.value()])
+        cv2.imshow("warped image", warpedImage)
+
+        print("Done with WAaAaaaARrrrRRppPpp")
 
     
     def unwarp(self, vol, seg_dir):
@@ -370,7 +389,7 @@ class WarpWindow(QtWidgets.QWidget):
 
                 xbounds = self.getBounds(int(vol.shape_x/self.gridSize), event.xdata)
                 ybounds = self.getBounds(int(vol.shape_y/self.gridSize), event.ydata)
-                
+
                 surrounding_points = ([ [xbounds[0], ybounds[0]], [xbounds[1],ybounds[0]], [xbounds[0], ybounds[1]], [xbounds[1], ybounds[1]] ])
                 
                 closest_point = self.getClosestPoint(surrounding_points, [event.xdata, event.ydata])
@@ -504,9 +523,9 @@ class WarpWindow(QtWidgets.QWidget):
             index = self.ogPointLoc.index([self.active_point[0], self.active_point[1]]) #finding location in og point array
             self.newPointLoc[index][0] = point[0]
             self.newPointLoc[index][1] = point[1]
-            print("found'em")
-            print("Points List: ", self.newPointLoc[index])
-            print("Active Point: ", self.active_point)
+            # print("found'em")
+            # print("Points List: ", self.newPointLoc[index])
+            # print("Active Point: ", self.active_point)
 
 
         self.update_slice(self.vol, self.slice_slider.value())
