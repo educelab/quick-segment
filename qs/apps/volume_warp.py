@@ -8,6 +8,8 @@ import sys
 import time
 from pathlib import Path
 
+import cv2 #open cv used for warping 
+
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QAction
@@ -15,8 +17,6 @@ from PyQt6.QtWidgets import QMessageBox, QMenuBar, QMenu
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
-
-
 
 import qs.apps.quick_segment
 
@@ -199,7 +199,6 @@ class WarpWindow(QtWidgets.QWidget):
         # #storage of moved points for warp
         self.active_point = ([-1, -1, -1, -1])
         self.gridSize = 10
-        self.allPoints = np.empty(shape=(121,2))
         self.pointLoc = ([]) #list that will hold all of the og and moved points locations
         
 
@@ -226,15 +225,25 @@ class WarpWindow(QtWidgets.QWidget):
         #image size 695x551 (WxH)
         for i in range(0, width+1, int(width/self.gridSize)):
             for j in range(0, height+1, int(height/self.gridSize)):
-                self.ax.add_artist(
-                    plt.Circle([i, j], 3.5, color="yellow")
-                )
                 #filling array but only for the first time
-                if first :
-                    self.allPoints[count] = [i, j]
-                    count = count + 1 
-
-        # print(self.allPoints)
+                if first:
+                    self.ax.add_artist(
+                            plt.Circle([i, j], 3.5, color="yellow")
+                        )
+                        
+                    temp = self.active_point.copy()
+                    temp[0] = i
+                    temp[1] = j
+                    self.pointLoc.append(temp)
+                    
+                else:
+                    # if the point has been moved
+                    if self.pointLoc[count][3] != -1:
+                        self.ax.add_artist(plt.Circle([self.pointLoc[count][2], self.pointLoc[count][3]], 3.5, color="blue"))
+                    else:
+                        self.ax.add_artist(plt.Circle([self.pointLoc[count][0], self.pointLoc[count][1]], 3.5, color="yellow"))
+                
+                count = count + 1
 
         self.canvas.draw_idle()
 
@@ -365,42 +374,18 @@ class WarpWindow(QtWidgets.QWidget):
             
             elif event.button == 3:  # Right click
                 slice_num = self.slice_slider.value()
-                
-                # #removing the previous point from the list if it was not changed
-                # if len(self.pointLoc) != len(self.pointLoc):
-                #     self.og_pointLoc.pop()
 
                 xbounds = self.getBounds(int(vol.shape_x/self.gridSize), event.xdata)
                 ybounds = self.getBounds(int(vol.shape_y/self.gridSize), event.ydata)
                 surrounding_points = ([ [xbounds[0], ybounds[0]], [xbounds[1],ybounds[0]], [xbounds[0], ybounds[1]], [xbounds[1], ybounds[1]] ])
                 
-                
                 closest_point = self.getClosestPoint(surrounding_points, [event.xdata, event.ydata])
                 
-                #set the point as active
+                #set the point as active and save loaction in the pointLoc
                 self.set_active(0, closest_point) #og point position
                 self.set_active(1, closest_point) #moved point position
-                
-                if(len(self.pointLoc) == 0):
-                    self.pointLoc.append(self.active_point.copy())
-                else:
-                    found = False
-                    #add point to the list of og points if not already in the list
-                    for sublist in self.pointLoc:
-                        print("Points List: ", sublist)
-                        print("Active Point: ", self.active_point)
-                        if ((self.active_point[0] == sublist[0]) and (self.active_point[1] == sublist[1])):
-                            print("found'em")
-                            found = True
-                    if not found:
-                        print("Not in list")
-                        self.pointLoc.append(self.active_point)
-                
-
-                print("Moved Points: ", self.pointLoc)
 
                 self.canvas.draw_idle()
-                #self.set_active(closest_line)
 
     #--------------------------------matplotlib GUI----------------------------v
     def insert_ax(self, vol, initial_slice):
@@ -425,12 +410,9 @@ class WarpWindow(QtWidgets.QWidget):
             self.ax.add_artist(
                 plt.Circle([self.active_point[2], self.active_point[3]], 7,
                     facecolor='none', edgecolor='red'))
-
-
+        
         self.ax.set_xlim(self.zoom_width)
         self.ax.set_ylim(self.zoom_height)
-
-
 
         # update the slice index box
         self.slice_index.setText(str(val))
@@ -505,12 +487,25 @@ class WarpWindow(QtWidgets.QWidget):
     #-----------------------------Segmentation Line Loading/Switching-----------------------
     # function set the point as active
     def set_active(self, pos, point):
+        #saving active point info
         if pos == 0:
             self.active_point[0] = point[0]
             self.active_point[1] = point[1]
+        #moved point loc
         elif pos == 1:
             self.active_point[2] = point[0]
             self.active_point[3] = point[1]
+
+            #updating pointLoc info
+            for sublist in self.pointLoc:
+                if ((self.active_point[0] == sublist[0]) and (self.active_point[1] == sublist[1])):
+                    sublist[2] = point[0]
+                    sublist[3] = point[1]
+                    print("found'em")
+                    print("Points List: ", sublist)
+                    print("Active Point: ", self.active_point)
+                        
+
 
         self.update_slice(self.vol, self.slice_slider.value())
 
