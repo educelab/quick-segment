@@ -244,16 +244,14 @@ class WarpLineWindow(QtWidgets.QWidget):
                 point[0] = self.ogPointLoc[count][0]
                 point[1] = self.ogPointLoc[count][1]
             count = count + 1
-        #convert to Numpy array
-        ogNParray = np.array(self.ogPointLoc, np.float32)
-        newNParray = np.array(self.newPointLoc, np.float32)
         
         #matrix = cv2.getPerspectiveTransform(ogNParray, newNParray) #-----> current problem is that the warp function is for 4 points only 
 
         #making sure they contatin exactly 4 points 
-        if len(self.og4points) != 4:
+        if len(self.og4points) != 4 and len(self.new4points) != 4:
             print("You need exactly 4 points to run this function, please choose 4 points")
         else:  
+            #convert to Numpy array
             og4np = np.array(self.og4points, np.float32)
             new4np = np.array(self.new4points, np.float32)
             matrix = cv2.getPerspectiveTransform(og4np, new4np)
