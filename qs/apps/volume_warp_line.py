@@ -7,6 +7,8 @@ import sys
 import time
 from pathlib import Path
 
+import cv2 #open cv used for warping 
+
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QAction
@@ -131,6 +133,19 @@ class WarpLineWindow(QtWidgets.QWidget):
         self.segmentation_list.itemClicked.connect(
             lambda uuid: self.handle_list_click(seg_dir, uuid))
 
+
+        #------buttons related to warping------v
+        # warp button
+        self.warp_button = QtWidgets.QPushButton()
+        self.warp_button.setText('Warp')
+        self.warp_button.clicked.connect(lambda: self.warp(vol, seg_dir))
+        # unwarp button
+        self.unwarp_button = QtWidgets.QPushButton()
+        self.unwarp_button.setText('Unwarp')
+        self.unwarp_button.clicked.connect(lambda: self.unwarp(vol, seg_dir))
+        #------buttons related to warping------^
+        
+
         # save button
         self.save_button = QtWidgets.QPushButton()
         self.save_button.setText('Save Points')
@@ -169,6 +184,9 @@ class WarpLineWindow(QtWidgets.QWidget):
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
 
+        toolbar_layout.addWidget(self.warp_button)
+        toolbar_layout.addWidget(self.unwarp_button)
+
         toolbar_layout.addWidget(self.undo_point_button)
         toolbar_layout.addWidget(self.clear_slice_button)
         toolbar_layout.addWidget(self.clear_all_button)
@@ -199,13 +217,63 @@ class WarpLineWindow(QtWidgets.QWidget):
         self.zoom_width = self.init_x_zoom
         self.zoom_height = self.init_y_zoom
 
+        #-------Storage for the warp--------
+        #temporary list for the 4 points used to warp the image with openCV
+        self.og4points = ([])
+        self.new4points = ([])
+
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
 
         # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
         cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
 
+    #-------------------------------Warp Functions------------------------------
+        def warp(self, vol, seg_dir):
+        """
+        Warps the image based on the change in point positions
+        @param Volume
+        @param segmentation directory 
+        """
+        print("WAaAaaaARrrrRRppPppIIiiiIInnnnNNNNnnnGGGGgGGGgggggg")
+
+        #clean the arrays up to prevent -1's
+        count = 0
+        for point in self.newPointLoc: 
+            if point[0] == -1:
+                point[0] = self.ogPointLoc[count][0]
+                point[1] = self.ogPointLoc[count][1]
+            count = count + 1
+        #convert to Numpy array
+        ogNParray = np.array(self.ogPointLoc, np.float32)
+        newNParray = np.array(self.newPointLoc, np.float32)
+        
+        #matrix = cv2.getPerspectiveTransform(ogNParray, newNParray) #-----> current problem is that the warp function is for 4 points only 
+
+        #making sure they contatin exactly 4 points 
+        if len(self.og4points) != 4:
+            print("You need exactly 4 points to run this function, please choose 4 points")
+        else:  
+            og4np = np.array(self.og4points, np.float32)
+            new4np = np.array(self.new4points, np.float32)
+            matrix = cv2.getPerspectiveTransform(og4np, new4np)
+            
+            warpedImage = cv2.warpPerspective(vol[self.slice_slider.value()], matrix, (695, 551))
+            cv2.imshow("og Image", vol[self.slice_slider.value()])
+            cv2.imshow("warped image", warpedImage)
+
+            print("Done with WAaAaaaARrrrRRppPpp")
+
     
+    def unwarp(self, vol, seg_dir):
+        """
+        Unwarps the previous warp to return image to og state
+        @param Volume
+        @param segmentation directory 
+        """
+        print("UNDO WAaAaaaARrrrRRppPpp")
+
+
     #-------------------------------Mouse Functions-------------------------------v
     # Function to be called when the mouse is scrolled
     def onScroll(self, event):
@@ -262,50 +330,75 @@ class WarpLineWindow(QtWidgets.QWidget):
         if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
             if event.button == 1:  # Left click
                 slice_num = self.slice_slider.value()
-                new_point = [event.xdata, event.ydata, slice_num]
-                self.lines[self.active_line].setdefault(slice_num, []).append(
-                    new_point)
 
-                # drawing the line between the past and new point
-                if len(self.lines[self.active_line][slice_num]) > 1:
-                    prev_point = self.lines[self.active_line][slice_num][-2]
-                    self.ax.plot([prev_point[0], new_point[0]],
-                                 [prev_point[1], new_point[1]], color='red')
+                #adding points to the list of points used for the warp
+                #first 4 points are the og location and all that follow are the next 4
+                if len(self.og4points) < 4:
+                    self.og4points.append([event.xdata, event.ydata])
+                elif len(self.og4points) == 4 and len(self.new4points) < 4:
+                    self.new4points.append([event.xdata, event.ydata])
+                
+                #ignore all other unput after 8 points are drawn
+                if len(self.og4points) != 4 and len(self.new4points) != 4:
+                    new_point = [event.xdata, event.ydata, slice_num]
+                    self.lines[self.active_line].setdefault(slice_num, []).append(
+                        new_point)
 
-                self.ax.add_artist(
-                    plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
-                self.ax.add_artist(
-                    plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
-                               edgecolor='red'))
-                self.canvas.draw_idle()
-
-                # Add tracker on shadows
-                # Previous slice shadow
-                if self.show_shadows_toggle.isChecked() and len(self.lines[self.active_line][slice_num]) > 0:
-                    drawn_points = len(self.lines[self.active_line][slice_num]) - 1
-                    # putting in shadow for the previous key slice
-                    last_slice = find_previous_key(int(slice_num),
-                                                self.lines[self.active_line])  # previous key slice shadow
-                    if last_slice != -1:
+                    # # drawing the line between the past and new point
+                    # if len(self.lines[self.active_line][slice_num]) > 1:
+                    #     prev_point = self.lines[self.active_line][slice_num][-2]
+                    #     self.ax.plot([prev_point[0], new_point[0]],
+                    #                 [prev_point[1], new_point[1]], color='red')
+                    
+                    #color of first 4 points is red
+                    if len(og4points) != 4:
                         self.ax.add_artist(
-                            plt.Circle((last_slice[drawn_points][0], last_slice[drawn_points][1]), 7, facecolor='none',
-                                    edgecolor='black'))
-
-                    # putting in the shadow for the next key slice
-                    next_slice = find_next_key(int(slice_num),
-                                                self.lines[self.active_line])  # next key slice shadow
-                    if next_slice != -1:
+                            plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
                         self.ax.add_artist(
-                            plt.Circle((next_slice[drawn_points][0], next_slice[drawn_points][1]), 7, facecolor='none',
-                                    edgecolor='white'))
+                            plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
+                                    edgecolor='red'))
+                    #color of remaining 4 are blue
+                    else:
+                        self.ax.add_artist(
+                            plt.Circle((event.xdata, event.ydata), 3.5, color="blue"))
+                        self.ax.add_artist(
+                            plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
+                                    edgecolor='blue'))
+                    
+                    self.canvas.draw_idle()
 
-                # on slice that has point == key slice and add it to the key slice list
-                # Find slice in lines dictionary
-                if slice_num in self.lines[self.active_line]:
-                    # if not already on list
-                    if len(self.lines[self.active_line][slice_num]) == 1:
-                        self.key_slice_drop_down.addItem(str(slice_num))
-                        self.key_slice_drop_down.setCurrentText(str(slice_num))
+                    # Add tracker on shadows
+                    # Previous slice shadow
+                    # if self.show_shadows_toggle.isChecked() and len(self.lines[self.active_line][slice_num]) > 0:
+                    #     drawn_points = len(self.lines[self.active_line][slice_num]) - 1
+                    #     # putting in shadow for the previous key slice
+                    #     last_slice = find_previous_key(int(slice_num),
+                    #                                 self.lines[self.active_line])  # previous key slice shadow
+                    #     if last_slice != -1:
+                    #         self.ax.add_artist(
+                    #             plt.Circle((last_slice[drawn_points][0], last_slice[drawn_points][1]), 7, facecolor='none',
+                    #                     edgecolor='black'))
+
+                    #     # putting in the shadow for the next key slice
+                    #     next_slice = find_next_key(int(slice_num),
+                    #                                 self.lines[self.active_line])  # next key slice shadow
+                    #     if next_slice != -1:
+                    #         self.ax.add_artist(
+                    #             plt.Circle((next_slice[drawn_points][0], next_slice[drawn_points][1]), 7, facecolor='none',
+                    #                     edgecolor='white'))
+
+                    # on slice that has point == key slice and add it to the key slice list
+                    # Find slice in lines dictionary
+                    if slice_num in self.lines[self.active_line]:
+                        # if not already on list
+                        if len(self.lines[self.active_line][slice_num]) == 1:
+                            self.key_slice_drop_down.addItem(str(slice_num))
+                            self.key_slice_drop_down.setCurrentText(str(slice_num))
+                
+                #clicks after the 8 points are placed ignored
+                else:
+                    print("You have already placed your 8 points")
+
             elif event.button == 3:  # Right click
                 slice_num = self.slice_slider.value()
                 min = 99999999
