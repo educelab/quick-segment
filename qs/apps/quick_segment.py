@@ -839,7 +839,7 @@ class MainWindow(QtWidgets.QWidget):
         self.update_slice(vol, self.slice_slider.value())
         return True
     
-
+# This class blocks arrrow keys from QLineEdit and calls the desired slice step change
 class IntLineEdit(QtWidgets.QLineEdit):
     
     def __init__(self, Aself, vol, seg_dir, parent=None):
@@ -856,14 +856,24 @@ class IntLineEdit(QtWidgets.QLineEdit):
         step_slice = self.Aself.step_slice
         # If the key is the right arrow key, ignore it and increase slice by 1
         if (event.key() in (QtCore.Qt.Key.Key_Right, QtCore.Qt.Key.Key_Home)):
-            event.ignore()
-            step_slice(self.Aself.vol, "Single Step Increase")
+            # If the modifier is shift, do a multi step increase
+            if (event.modifiers() == (QtCore.Qt.KeyboardModifier.KeypadModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)):
+                event.ignore()
+                step_slice(self.Aself.vol, "Multi Step Increase")
+            else:
+                event.ignore()
+                step_slice(self.Aself.vol, "Single Step Increase")
             return
 
         # If the key is the left arrow key, ignore it and decrease slice by 1
         if (event.key() in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_End)):
-            event.ignore()
-            step_slice(self.Aself.vol, "Single Step Decrease")
+            # If the modifier is shift, do a multi step decrease
+            if (event.modifiers() == (QtCore.Qt.KeyboardModifier.KeypadModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)):
+                event.ignore()
+                step_slice(self.Aself.vol, "Multi Step Decrease")
+            else:
+                event.ignore()
+                step_slice(self.Aself.vol, "Single Step Decrease")
             return
         
         super().keyPressEvent(event)
