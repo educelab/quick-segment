@@ -82,11 +82,22 @@ class MainWindow(QtWidgets.QWidget):
         self.slice_slider.valueChanged.connect(
             lambda: self.update_slice(vol, self.slice_slider.value()))
         # Slider index box
+        self.slice_index_label = QtWidgets.QLabel("Slice Index: ")
         self.slice_index = IntLineEdit(self, vol, seg_dir)
         self.slice_index.setMaxLength(5)
+        self.slice_index.setFixedWidth(100)
         self.slice_index.setPlaceholderText("0")
         self.slice_index.returnPressed.connect(
             lambda: self.set_slice(vol, self.slice_index.text()))
+        # Big Jump box
+        self.jumpNum = 50
+        self.jump_label = QtWidgets.QLabel("Jump Size: ")
+        self.jump_index = IntLineEdit(self, vol, seg_dir)
+        self.jump_index.setMaxLength(5)
+        self.jump_index.setFixedWidth(100)
+        self.jump_index.setPlaceholderText(str(self.jumpNum))
+        self.jump_index.returnPressed.connect(
+            lambda: self.set_jump(self.jump_index.text()))
         # Step slice navigation
         self.big_step_decrease_button = QtWidgets.QPushButton()
         self.big_step_decrease_button.setIcon(QIcon(':/icons/double_arrow_left'))
@@ -110,12 +121,17 @@ class MainWindow(QtWidgets.QWidget):
         self.key_slice_drop_down.addItem("~")
         self.key_slice_drop_down.activated.connect(
             lambda: self.set_slice(vol, self.key_slice_drop_down.currentText()))
+        
 
         # adding to slice nav layout
         slider_layout = QtWidgets.QHBoxLayout()
         slider_layout.addWidget(self.slider_label)
         slider_layout.addWidget(self.slice_slider)
+        slider_layout.addWidget(self.slice_index_label)
         slider_layout.addWidget(self.slice_index)
+        slider_layout.addSpacing(10)
+        slider_layout.addWidget(self.jump_label)
+        slider_layout.addWidget(self.jump_index)
         # adding step nav to layout
         step_layout = QtWidgets.QHBoxLayout()
         step_layout.addWidget(self.big_step_decrease_button)
@@ -694,6 +710,11 @@ class MainWindow(QtWidgets.QWidget):
 
             self.slice_slider.setValue(sliceNum)
 
+    # Function that is used to set the current jump size using the text input box
+    def set_jump(self, val):
+        self.jumpNum = int(val)
+        self.jump_index.setPlaceholderText(val)
+
     # Function that is used to navigate the slice by set amounts
     def step_slice(self, vol, type):
         slice_num = self.slice_slider.value()
@@ -705,7 +726,7 @@ class MainWindow(QtWidgets.QWidget):
             previous_slice = find_previous_key(slice_num,
                                                self.lines[self.active_line])
             if previous_slice == -1:
-                slice_num = slice_num - 50
+                slice_num = slice_num - self.jumpNum
             else:
                 slice_num = previous_slice[0][2]
         elif type == "Single Step Decrease":
@@ -715,7 +736,7 @@ class MainWindow(QtWidgets.QWidget):
         elif type == "Multi Step Increase":
             next_slice = find_next_key(slice_num, self.lines[self.active_line])
             if next_slice == -1:
-                slice_num = slice_num + 50
+                slice_num = slice_num + self.jumpNum
             else:
                 slice_num = next_slice[0][2]
 
