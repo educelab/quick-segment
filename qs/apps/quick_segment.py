@@ -83,7 +83,7 @@ class MainWindow(QtWidgets.QWidget):
             lambda: self.update_slice(vol, self.slice_slider.value()))
         # Slider index box
         self.slice_index_label = QtWidgets.QLabel("Slice Index: ")
-        self.slice_index = IntLineEdit(self, vol, seg_dir)
+        self.slice_index = IntLineEdit(self, vol, seg_dir)                                  #IntLineEdit ignores arrow key input to QLineEdit text boxes
         self.slice_index.setMaxLength(5)
         self.slice_index.setFixedWidth(100)
         self.slice_index.setPlaceholderText("0")
@@ -92,7 +92,7 @@ class MainWindow(QtWidgets.QWidget):
         # Big Jump box
         self.jumpNum = 50
         self.jump_label = QtWidgets.QLabel("Jump Size: ")
-        self.jump_index = IntLineEdit(self, vol, seg_dir)
+        self.jump_index = IntLineEdit(self, vol, seg_dir)                                  #IntLineEdit ignores arrow key input to QLineEdit text boxes
         self.jump_index.setMaxLength(5)
         self.jump_index.setFixedWidth(100)
         self.jump_index.setPlaceholderText(str(self.jumpNum))
