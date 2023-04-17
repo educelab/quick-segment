@@ -1,6 +1,7 @@
 #Volume Warp Line Page within the GUI
 from __future__ import annotations
 
+import numpy as np
 import argparse
 import os
 import sys
@@ -229,7 +230,7 @@ class WarpLineWindow(QtWidgets.QWidget):
         cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
 
     #-------------------------------Warp Functions------------------------------
-        def warp(self, vol, seg_dir):
+    def warp(self, vol, seg_dir):
         """
         Warps the image based on the change in point positions
         @param Volume
@@ -237,16 +238,7 @@ class WarpLineWindow(QtWidgets.QWidget):
         """
         print("WAaAaaaARrrrRRppPppIIiiiIInnnnNNNNnnnGGGGgGGGgggggg")
 
-        #clean the arrays up to prevent -1's
-        count = 0
-        for point in self.newPointLoc: 
-            if point[0] == -1:
-                point[0] = self.ogPointLoc[count][0]
-                point[1] = self.ogPointLoc[count][1]
-            count = count + 1
         
-        #matrix = cv2.getPerspectiveTransform(ogNParray, newNParray) #-----> current problem is that the warp function is for 4 points only 
-
         #making sure they contatin exactly 4 points 
         if len(self.og4points) != 4 and len(self.new4points) != 4:
             print("You need exactly 4 points to run this function, please choose 4 points")
@@ -329,15 +321,22 @@ class WarpLineWindow(QtWidgets.QWidget):
             if event.button == 1:  # Left click
                 slice_num = self.slice_slider.value()
 
+                #checking for all 8 points
+                fullPoints = False
+
                 #adding points to the list of points used for the warp
                 #first 4 points are the og location and all that follow are the next 4
                 if len(self.og4points) < 4:
                     self.og4points.append([event.xdata, event.ydata])
+                    print("Adding og point ", len(self.og4points), " at (", event.xdata, ",", event.ydata, ")")
                 elif len(self.og4points) == 4 and len(self.new4points) < 4:
                     self.new4points.append([event.xdata, event.ydata])
+                    print("Adding new point ", len(self.new4points), " at (", event.xdata, ",", event.ydata, ")")
+                elif len(self.new4points) == 4:
+                    fullPoints = True
                 
                 #ignore all other unput after 8 points are drawn
-                if len(self.og4points) != 4 and len(self.new4points) != 4:
+                if not fullPoints:
                     new_point = [event.xdata, event.ydata, slice_num]
                     self.lines[self.active_line].setdefault(slice_num, []).append(
                         new_point)
@@ -349,7 +348,7 @@ class WarpLineWindow(QtWidgets.QWidget):
                     #                 [prev_point[1], new_point[1]], color='red')
                     
                     #color of first 4 points is red
-                    if len(og4points) != 4:
+                    if len(self.og4points) <= 4 and len(self.new4points) == 0:
                         self.ax.add_artist(
                             plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
                         self.ax.add_artist(

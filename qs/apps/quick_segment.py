@@ -61,7 +61,7 @@ class StackedWindow(QtWidgets.QWidget):
         self.Stack.addWidget(self.warp_line_page)
 
         #self.Stack.setCurrentWidget(self.segment_page)
-        self.Stack.setCurrentWidget(self.warp_grid_page)
+        self.Stack.setCurrentWidget(self.warp_line_page)
 
         #--------------------------menu bar---------------------
         self.menubar = QMenuBar()
