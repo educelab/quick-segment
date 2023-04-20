@@ -144,18 +144,17 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         self.unwarp_button = QtWidgets.QPushButton()
         self.unwarp_button.setText('Unwarp')
         self.unwarp_button.clicked.connect(lambda: self.unwarp(vol, seg_dir))
-        # set interpolated points button
-        self.set_interp_button = QtWidgets.QPushButton()
-        self.set_interp_button.setText('Set Interpolated Points')
-        self.set_interp_button.clicked.connect(lambda: self.set_interp_points(vol, seg_dir))
-        # Add border to points button 
-        self.border_button = QtWidgets.QPushButton()
-        self.border_button.setText('Add Border Points')
-        self.border_button.clicked.connect(lambda: self.add_border(vol, seg_dir))
-        # Add new point Loc
-        self.new_points_button = QtWidgets.QPushButton()
-        self.new_points_button.setText('Add in New Points')
-        self.new_points_button.clicked.connect(lambda: self.add_new_points(vol, seg_dir))
+
+        # Set points button 
+        self.set_points_button = QtWidgets.QPushButton()
+        self.set_points_button.setText('Set Start Points')
+        self.set_points_button.clicked.connect(lambda: self.set_og_points(vol, seg_dir))
+        
+        # Adding New Points toggel 
+        self.new_points_toggle = QtWidgets.QCheckBox("Adding new Points")
+        self.new_points_toggle.setChecked(False)
+        self.new_points_toggle.stateChanged.connect(lambda: self.flip_value(vol, "Set Points"))
+
         #------buttons related to warping------^
         
 
@@ -200,9 +199,9 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         #WARPING BUTTONS ----v
         toolbar_layout.addWidget(self.warp_button)
         toolbar_layout.addWidget(self.unwarp_button)
-        toolbar_layout.addWidget(self.set_interp_button)
-        toolbar_layout.addWidget(self.border_button)
-        toolbar_layout.addWidget(self.new_points_button)
+
+        toolbar_layout.addWidget(self.set_points_button)
+        toolbar_layout.addWidget(self.new_points_toggle)
         #WARPING BUTTONS -----^
 
         toolbar_layout.addWidget(self.undo_point_button)
@@ -236,9 +235,11 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         self.zoom_height = self.init_y_zoom
 
         #-------Storage for the warp--------
-        #temporary list for the 4 points used to warp the image with openCV
-        self.ogpoints = ([])
-        self.newpoints = ([])
+        #list of points used for warping the slice
+        self.ogWarpPoints = dict() #first 4 contain the boarder points
+        self.newWarpPoints = dict()
+
+        self.settingNewPoints = False
 
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -255,20 +256,13 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         """
         print("WAaAaaaARrrrRRppPppIIiiiIInnnnNNNNnnnGGGGgGGGgggggg")
 
+        slice_num = self.slice_slider.value()
+
+        #convert to Numpy array
+        ogpNP = np.array(self.ogWarpPoints[slice_num], np.float32)
+        newNP = np.array(self.newWarpPoints[slice_num], np.float32)
         
-        #making sure they contatin exactly 4 points 
-        # if len(self.og4points) != 4 and len(self.new4points) != 4:
-        #     print("You need exactly 4 points to run this function, please choose 4 points")
-        # else:  
-        #     #convert to Numpy array
-        #     og4np = np.array(self.og4points, np.float32)
-        #     new4np = np.array(self.new4points, np.float32)
-        #     matrix = cv2.getAffineTransform(og4np, new4np)
-            
-        #     # warpedImage = cv2.warpPerspective(vol[self.slice_slider.value()], matrix, (695, 551))
-        #     warpedImage = cv2.warpAffine(vol[self.slice_slider.value()], matrix, (695, 551))
-        #     cv2.imshow("og Image", vol[self.slice_slider.value()])
-        #     cv2.imshow("warped image", warpedImage)
+        
 
         print("Done with WAaAaaaARrrrRRppPpp")
 
@@ -282,31 +276,40 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         print("UNDO WAaAaaaARrrrRRppPpp")
 
     
-    def set_interp_points(self, vol, seg_dir):
+    def set_og_points(self, vol, seg_dir):
         """
-        turns the interperlated points into real points
+        Saves the original points and adds boarder points to the point set for future warpping 
         @param Volume
         @param segmentation directory 
         """
-        print("Converting interpolated points into saved points...")
-        print("Successfully converted")
-    
-    def add_border(self, vol, seg_dir):
-        """
-        Adds boarder points to the point set for future warpping 
-        @param Volume
-        @param segmentation directory 
-        """
+        slice_num = self.slice_slider.value()
 
-        print("Added Boarder Points to set")
+        #Add all of the boarder points as the first 4 points in the ogPoints list
+        boarder_points = ([[0,0], [vol.shape[2],0], [0,vol.shape[1]], [vol.shape[2],vol.shape[1]]])
+        self.ogWarpPoints.setdefault(slice_num, []).extend(boarder_points) 
 
-    def add_new_points(self, vol, seg_dir):
+        #adding each point as (x,y) to the list
+        for point in self.lines[self.active_line][slice_num]:
+            self.ogWarpPoints[slice_num].append([point[0], point[1]])
+        print("OG Points saved to the dict - list")
+
+        #setting up the new points dict so its ready for the new points
+        self.newWarpPoints.setdefault(slice_num, []).extend(boarder_points) 
+        
+        print("new Points dict - list started")
+
+
+    def flip_value(self, vol, name):
         """
-        Every new point added is where the old points are supposed to warp too
-        @param Volume
-        @param segmentation directory 
+        Flips the boolean value of the variable given by the param name
+        @param name -> the case for what value to be flipped
         """
-        print("You are now able to add points to where you want the segmentation to warp too")
+        if name == "Set Points":
+            self.settingNewPoints = not self.settingNewPoints
+
+        self.update_slice(vol, self.slice_slider.value())
+        
+
 
 
 
@@ -366,70 +369,37 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
             if event.button == 1:  # Left click
                 slice_num = self.slice_slider.value()
+                #checking if placing new points for segmentation 
+                if self.settingNewPoints:
+                    fullPoints = False #checking to see if the user has put the same number of points as there is in the og line
+                    if len(self.newWarpPoints[slice_num]) == len(self.ogWarpPoints[slice_num]):
+                        fullPoints = True
 
-                #checking for all 8 points
-                fullPoints = False
+                    #ignore all other unput after 8 points are drawn
+                    if not fullPoints:
+                        new_point = [event.xdata, event.ydata]
+                        self.newWarpPoints.setdefault(slice_num, []).append(new_point)
 
-                #adding points to the list of points used for the warp
-                #first 4 points are the og location and all that follow are the next 4
-                if len(self.og4points) < 4:
-                    self.og4points.append([event.xdata, event.ydata])
-                    print("Adding og point ", len(self.og4points), " at (", event.xdata, ",", event.ydata, ")")
-                elif len(self.og4points) == 4 and len(self.new4points) < 4:
-                    self.new4points.append([event.xdata, event.ydata])
-                    print("Adding new point ", len(self.new4points), " at (", event.xdata, ",", event.ydata, ")")
-                elif len(self.new4points) == 4:
-                    fullPoints = True
-                
-                #ignore all other unput after 8 points are drawn
-                if not fullPoints:
-                    new_point = [event.xdata, event.ydata, slice_num]
-                    self.lines[self.active_line].setdefault(slice_num, []).append(
-                        new_point)
-
-                    # # drawing the line between the past and new point
-                    # if len(self.lines[self.active_line][slice_num]) > 1:
-                    #     prev_point = self.lines[self.active_line][slice_num][-2]
-                    #     self.ax.plot([prev_point[0], new_point[0]],
-                    #                 [prev_point[1], new_point[1]], color='red')
-                    
-                    #color of first 4 points is red
-                    if len(self.og4points) <= 4 and len(self.new4points) == 0:
-                        self.ax.add_artist(
-                            plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
-                        self.ax.add_artist(
-                            plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
-                                    edgecolor='red'))
-                    #color of remaining 4 are blue
-                    else:
+                        # drawing the line between the past and new point
+                        if len(self.newWarpPoints[slice_num]) > 5:
+                            prev_point = self.newWarpPoints[slice_num][-2] #finding second to last point 
+                            self.ax.plot([prev_point[0], new_point[0]],
+                                        [prev_point[1], new_point[1]], color='blue')
+                            
                         self.ax.add_artist(
                             plt.Circle((event.xdata, event.ydata), 3.5, color="blue"))
                         self.ax.add_artist(
                             plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
                                     edgecolor='blue'))
-                    
+                        
+                    #clicks after the 8 points are placed ignored
+                    else:
+                        print("You have already placed all of the points that you need")
+                        
                     self.canvas.draw_idle()
 
-                    # Add tracker on shadows
-                    # Previous slice shadow
-                    # if self.show_shadows_toggle.isChecked() and len(self.lines[self.active_line][slice_num]) > 0:
-                    #     drawn_points = len(self.lines[self.active_line][slice_num]) - 1
-                    #     # putting in shadow for the previous key slice
-                    #     last_slice = find_previous_key(int(slice_num),
-                    #                                 self.lines[self.active_line])  # previous key slice shadow
-                    #     if last_slice != -1:
-                    #         self.ax.add_artist(
-                    #             plt.Circle((last_slice[drawn_points][0], last_slice[drawn_points][1]), 7, facecolor='none',
-                    #                     edgecolor='black'))
-
-                    #     # putting in the shadow for the next key slice
-                    #     next_slice = find_next_key(int(slice_num),
-                    #                                 self.lines[self.active_line])  # next key slice shadow
-                    #     if next_slice != -1:
-                    #         self.ax.add_artist(
-                    #             plt.Circle((next_slice[drawn_points][0], next_slice[drawn_points][1]), 7, facecolor='none',
-                    #                     edgecolor='white'))
-
+                #normal point addition
+                else:
                     # on slice that has point == key slice and add it to the key slice list
                     # Find slice in lines dictionary
                     if slice_num in self.lines[self.active_line]:
@@ -437,10 +407,8 @@ class VolumeWarpWindow(QtWidgets.QWidget):
                         if len(self.lines[self.active_line][slice_num]) == 1:
                             self.key_slice_drop_down.addItem(str(slice_num))
                             self.key_slice_drop_down.setCurrentText(str(slice_num))
-                
-                #clicks after the 8 points are placed ignored
-                else:
-                    print("You have already placed your 8 points")
+                    
+                    
 
             elif event.button == 3:  # Right click
                 slice_num = self.slice_slider.value()
@@ -505,66 +473,81 @@ class VolumeWarpWindow(QtWidgets.QWidget):
             #     if next_slice != -1:
             #         self.draw_shadow(uuid, 'white', next_slice[0][2])
 
+           
+           
             #-----------Loading in the Warping points--------------
-            for pos in self.og4points:
-                self.ax.add_artist(
-                    plt.Circle((pos[0], pos[1]), 3.5, color='red'))
-                self.ax.add_artist(
-                    plt.Circle((pos[0], pos[1]), circle_size,
-                            facecolor='none', edgecolor='red'))
-            for pos in self.new4points:
-                self.ax.add_artist(
-                    plt.Circle((pos[0], pos[1]), 3.5, color='blue'))
-                self.ax.add_artist(
-                    plt.Circle((pos[0], pos[1]), circle_size,
-                            facecolor='none', edgecolor='blue'))
+            alpha_value = 1
+            #if we are focusing on the new point locations for the warpping
+            if self.settingNewPoints:
+                #printing out the new points for warp
+                if int(val) in self.newWarpPoints:
+                    for i in range(4, len(self.newWarpPoints[int(val)])-1): #not including the 4 boarder points
+                        point = self.newWarpPoints[int(val)][i]
+                        next_point = self.newWarpPoints[int(val)][i + 1]
+                        self.ax.plot([point[0], next_point[0]],
+                                        [point[1], next_point[1]], color='blue', alpha = alpha_value)
+                        self.ax.add_artist(
+                            plt.Circle((point[0], point[1]), 3.5, color='blue',  alpha = alpha_value))
+                        self.ax.add_artist(
+                            plt.Circle((point[0], point[1]), circle_size,
+                                        facecolor='none', edgecolor='blue',  alpha = alpha_value))
+                    if len(self.newWarpPoints[int(val)]) > 4:
+                        self.ax.add_artist(
+                            plt.Circle((self.newWarpPoints[int(val)][-1][0], self.newWarpPoints[int(val)][-1][1]),
+                                        3.5, color='blue',  alpha = alpha_value))
+                        self.ax.add_artist(
+                            plt.Circle((self.newWarpPoints[int(val)][-1][0], self.newWarpPoints[int(val)][-1][1]),
+                                        circle_size, facecolor='none', edgecolor='blue',  alpha = alpha_value))
+                
+                #making og points slightly see through 
+                alpha_value = 0.5
 
-            # # loading in the points
-            # if int(val) in lines:
-            #     for i in range(len(lines[int(val)]) - 1):
-            #         point = lines[int(val)][i]
-            #         next_point = lines[int(val)][i + 1]
-            #         self.ax.plot([point[0], next_point[0]],
-            #                         [point[1], next_point[1]], color='red')
-            #         self.ax.add_artist(
-            #             plt.Circle((point[0], point[1]), 3.5, color='red'))
-            #         self.ax.add_artist(
-            #             plt.Circle((point[0], point[1]), circle_size,
-            #                         facecolor='none', edgecolor='red'))
-            #     self.ax.add_artist(
-            #         plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
-            #                     3.5, color='red'))
-            #     self.ax.add_artist(
-            #         plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
-            #                     circle_size, facecolor='none', edgecolor='red'))
+            # loading in the points from the og points dict
+            if int(val) in lines:
+                for i in range(len(lines[int(val)]) - 1):
+                    point = lines[int(val)][i]
+                    next_point = lines[int(val)][i + 1]
+                    self.ax.plot([point[0], next_point[0]],
+                                    [point[1], next_point[1]], color='red', alpha = alpha_value)
+                    self.ax.add_artist(
+                        plt.Circle((point[0], point[1]), 3.5, color='red',  alpha = alpha_value))
+                    self.ax.add_artist(
+                        plt.Circle((point[0], point[1]), circle_size,
+                                    facecolor='none', edgecolor='red',  alpha = alpha_value))
+                self.ax.add_artist(
+                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
+                                3.5, color='red',  alpha = alpha_value))
+                self.ax.add_artist(
+                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
+                                circle_size, facecolor='none', edgecolor='red',  alpha = alpha_value))
 
-            # # drawing the interpolated points on slices between keyslices
-            # elif verify_interpolation(int(val), lines):
-            #     previous_key = find_previous_key(int(val), lines)
-            #     next_key = find_next_key(int(val), lines)
-            #     point = interpolate_point(int(val), previous_key[0],
-            #                               next_key[0])
-            #     for i in range(0, len(previous_key) - 1):
-            #         next_point = interpolate_point(int(val),
-            #                                        previous_key[i + 1],
-            #                                        next_key[i + 1])
-            #         self.ax.plot([point[0], next_point[0]],
-            #                      [point[1], next_point[1]], color='yellow')
-            #         self.ax.add_artist(
-            #             plt.Circle((point[0], point[1]), 3.5, color='yellow'))
-            #         self.ax.add_artist(
-            #             plt.Circle((point[0], point[1]), circle_size,
-            #                        facecolor='none', edgecolor='yellow'))
-            #         point = next_point
+            # drawing the interpolated points on slices between keyslices
+            elif verify_interpolation(int(val), lines):
+                previous_key = find_previous_key(int(val), lines)
+                next_key = find_next_key(int(val), lines)
+                point = interpolate_point(int(val), previous_key[0],
+                                          next_key[0])
+                for i in range(0, len(previous_key) - 1):
+                    next_point = interpolate_point(int(val),
+                                                   previous_key[i + 1],
+                                                   next_key[i + 1])
+                    self.ax.plot([point[0], next_point[0]],
+                                 [point[1], next_point[1]], color='yellow')
+                    self.ax.add_artist(
+                        plt.Circle((point[0], point[1]), 3.5, color='yellow'))
+                    self.ax.add_artist(
+                        plt.Circle((point[0], point[1]), circle_size,
+                                   facecolor='none', edgecolor='yellow'))
+                    point = next_point
 
-            #     last_point = interpolate_point(int(val), previous_key[-1],
-            #                                    next_key[-1])
-            #     self.ax.add_artist(
-            #         plt.Circle((last_point[0], last_point[1]), 3.5,
-            #                    color='yellow'))
-            #     self.ax.add_artist(
-            #         plt.Circle((last_point[0], last_point[1]), circle_size,
-            #                    facecolor='none', edgecolor='yellow'))
+                last_point = interpolate_point(int(val), previous_key[-1],
+                                               next_key[-1])
+                self.ax.add_artist(
+                    plt.Circle((last_point[0], last_point[1]), 3.5,
+                               color='yellow'))
+                self.ax.add_artist(
+                    plt.Circle((last_point[0], last_point[1]), circle_size,
+                               facecolor='none', edgecolor='yellow'))
 
         self.canvas.draw_idle()
 
@@ -683,9 +666,8 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         else:
             print("Slice already empty")
 
-        #------clearing warping points------
-        self.og4points.clear()
-        self.new4points.clear()
+        #------clearing new warping points------
+        self.newWarpPoints.clear()
 
         # Clear slice from key slices bar
         self.key_slice_drop_down.setCurrentText("~")
@@ -711,10 +693,9 @@ class VolumeWarpWindow(QtWidgets.QWidget):
                     self.lines[self.active_line].pop(slice_num)
 
         #--------undoing warping points------------
-        if len(self.new4points) > 0:
-            self.new4points.pop()
-        else:
-            self.og4points.pop()
+        if len(self.newWarpPoints[slice_num]) > 4: #not undoing the boarder points
+            self.newWarpPoints[slice_num].pop()
+
 
         self.update_slice(vol, slice_num)
 
