@@ -70,6 +70,7 @@ class StackedWindow(QtWidgets.QWidget):
         self.menubar = QMenuBar()
         self.pages = self.menubar.addMenu('Pages')
         self.pages.addAction('Segmentation', lambda: self.Stack.setCurrentWidget(self.segment_page))
+        self.pages.addAction('Warping: Grid', lambda: self.Stack.setCurrentWidget(self.volume_warp_page))
         self.pages.addAction('Warping: Grid', lambda: self.Stack.setCurrentWidget(self.warp_grid_page))
         self.pages.addAction('Warping: Line', lambda: self.Stack.setCurrentWidget(self.warp_line_page))
 

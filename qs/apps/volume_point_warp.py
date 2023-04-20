@@ -144,6 +144,18 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         self.unwarp_button = QtWidgets.QPushButton()
         self.unwarp_button.setText('Unwarp')
         self.unwarp_button.clicked.connect(lambda: self.unwarp(vol, seg_dir))
+        # set interpolated points button
+        self.set_interp_button = QtWidgets.QPushButton()
+        self.set_interp_button.setText('Set Interpolated Points')
+        self.set_interp_button.clicked.connect(lambda: self.set_interp_points(vol, seg_dir))
+        # Add border to points button 
+        self.border_button = QtWidgets.QPushButton()
+        self.border_button.setText('Add Border Points')
+        self.border_button.clicked.connect(lambda: self.add_border(vol, seg_dir))
+        # Add new point Loc
+        self.new_points_button = QtWidgets.QPushButton()
+        self.new_points_button.setText('Add in New Points')
+        self.new_points_button.clicked.connect(lambda: self.add_new_points(vol, seg_dir))
         #------buttons related to warping------^
         
 
@@ -185,8 +197,13 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
 
+        #WARPING BUTTONS ----v
         toolbar_layout.addWidget(self.warp_button)
         toolbar_layout.addWidget(self.unwarp_button)
+        toolbar_layout.addWidget(self.set_interp_button)
+        toolbar_layout.addWidget(self.border_button)
+        toolbar_layout.addWidget(self.new_points_button)
+        #WARPING BUTTONS -----^
 
         toolbar_layout.addWidget(self.undo_point_button)
         toolbar_layout.addWidget(self.clear_slice_button)
@@ -220,8 +237,8 @@ class VolumeWarpWindow(QtWidgets.QWidget):
 
         #-------Storage for the warp--------
         #temporary list for the 4 points used to warp the image with openCV
-        self.og4points = ([])
-        self.new4points = ([])
+        self.ogpoints = ([])
+        self.newpoints = ([])
 
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -240,20 +257,20 @@ class VolumeWarpWindow(QtWidgets.QWidget):
 
         
         #making sure they contatin exactly 4 points 
-        if len(self.og4points) != 4 and len(self.new4points) != 4:
-            print("You need exactly 4 points to run this function, please choose 4 points")
-        else:  
-            #convert to Numpy array
-            og4np = np.array(self.og4points, np.float32)
-            new4np = np.array(self.new4points, np.float32)
-            matrix = cv2.getAffineTransform(og4np, new4np)
+        # if len(self.og4points) != 4 and len(self.new4points) != 4:
+        #     print("You need exactly 4 points to run this function, please choose 4 points")
+        # else:  
+        #     #convert to Numpy array
+        #     og4np = np.array(self.og4points, np.float32)
+        #     new4np = np.array(self.new4points, np.float32)
+        #     matrix = cv2.getAffineTransform(og4np, new4np)
             
-            # warpedImage = cv2.warpPerspective(vol[self.slice_slider.value()], matrix, (695, 551))
-            warpedImage = cv2.warpAffine(vol[self.slice_slider.value()], matrix, (695, 551))
-            cv2.imshow("og Image", vol[self.slice_slider.value()])
-            cv2.imshow("warped image", warpedImage)
+        #     # warpedImage = cv2.warpPerspective(vol[self.slice_slider.value()], matrix, (695, 551))
+        #     warpedImage = cv2.warpAffine(vol[self.slice_slider.value()], matrix, (695, 551))
+        #     cv2.imshow("og Image", vol[self.slice_slider.value()])
+        #     cv2.imshow("warped image", warpedImage)
 
-            print("Done with WAaAaaaARrrrRRppPpp")
+        print("Done with WAaAaaaARrrrRRppPpp")
 
     
     def unwarp(self, vol, seg_dir):
@@ -263,6 +280,34 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         @param segmentation directory 
         """
         print("UNDO WAaAaaaARrrrRRppPpp")
+
+    
+    def set_interp_points(self, vol, seg_dir):
+        """
+        turns the interperlated points into real points
+        @param Volume
+        @param segmentation directory 
+        """
+        print("Converting interpolated points into saved points...")
+        print("Successfully converted")
+    
+    def add_border(self, vol, seg_dir):
+        """
+        Adds boarder points to the point set for future warpping 
+        @param Volume
+        @param segmentation directory 
+        """
+
+        print("Added Boarder Points to set")
+
+    def add_new_points(self, vol, seg_dir):
+        """
+        Every new point added is where the old points are supposed to warp too
+        @param Volume
+        @param segmentation directory 
+        """
+        print("You are now able to add points to where you want the segmentation to warp too")
+
 
 
     #-------------------------------Mouse Functions-------------------------------v
