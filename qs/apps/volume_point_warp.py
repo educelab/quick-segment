@@ -1,4 +1,4 @@
-#Volume Warp Line Page within the GUI
+#Volume Warp Page within the GUI
 from __future__ import annotations
 
 import numpy as np
@@ -29,9 +29,9 @@ from qs.interpolation import (find_next_key, find_previous_key,
 from qs.math import find_min
 
 # -------------------------------------------------------------------
-#                             WARP WINDOW LINE CLASS
+#                             VOLUME WARP WINDOW CLASS
 # -------------------------------------------------------------------
-class WarpLineWindow(QtWidgets.QWidget):
+class VolumeWarpWindow(QtWidgets.QWidget):
     ax = None
     bar = None
 

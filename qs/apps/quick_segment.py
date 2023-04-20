@@ -20,6 +20,7 @@ import qs.resources
 import qs.apps.segmentation as SegPage
 import qs.apps.volume_warp_grid as WarpGridPage
 import qs.apps.volume_warp_line as WarpLinePage
+import qs.apps.volume_point_warp as VolumeWarpPage
 
 from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
                      load_json, load_vcps, write_metadata, write_ordered_vcps,
@@ -55,13 +56,15 @@ class StackedWindow(QtWidgets.QWidget):
         self.segment_page = SegPage.SegmentWindow(vol, seg_dir, initial_slice)
         self.warp_grid_page = WarpGridPage.WarpGridWindow(vol, seg_dir, initial_slice)
         self.warp_line_page = WarpLinePage.WarpLineWindow(vol, seg_dir, initial_slice)
+        self.volume_warp_page = VolumeWarpPage.VolumeWarpWindow(vol, seg_dir, initial_slice)
         #adding widgets to the stack
         self.Stack.addWidget(self.segment_page)
         self.Stack.addWidget(self.warp_grid_page)
         self.Stack.addWidget(self.warp_line_page)
+        self.Stack.addWidget(self.volume_warp_page)
 
         #self.Stack.setCurrentWidget(self.segment_page)
-        self.Stack.setCurrentWidget(self.warp_line_page)
+        self.Stack.setCurrentWidget(self.volume_warp_page)
 
         #--------------------------menu bar---------------------
         self.menubar = QMenuBar()
