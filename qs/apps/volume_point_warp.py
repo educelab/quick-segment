@@ -480,7 +480,7 @@ class VolumeWarpWindow(QtWidgets.QWidget):
                         self.newWarpPoints.setdefault(slice_num, []).append(new_point)
 
                         # drawing the line between the past and new point
-                        if len(self.newWarpPoints[slice_num]) > 5:
+                        if len(self.newWarpPoints[slice_num]) > (4+self.grid_point_count):
                             prev_point = self.newWarpPoints[slice_num][-2] #finding second to last point 
                             self.ax.plot([prev_point[0], new_point[0]],
                                         [prev_point[1], new_point[1]], color='blue')
