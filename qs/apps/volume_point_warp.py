@@ -238,6 +238,8 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         #list of points used for warping the slice
         self.ogWarpPoints = dict() #first 4 contain the boarder points
         self.newWarpPoints = dict()
+        self.gridSize = 5
+        self.grid_point_count = 0
 
         self.settingNewPoints = False
 
@@ -259,14 +261,102 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         slice_num = self.slice_slider.value()
 
         #convert to Numpy array
-        ogpNP = np.array(self.ogWarpPoints[slice_num], np.float32)
-        newNP = np.array(self.newWarpPoints[slice_num], np.float32)
+        ogNP = np.array(self.ogWarpPoints[slice_num], np.int32)
+        newNP = np.array(self.newWarpPoints[slice_num], np.int32)
         
-        
+        og_img = vol[slice_num]
+        #Apply the transform to the image
+        new_img = self.transform(og_img, ogNP, newNP)
+
+        #show
+        cv2.imshow("Transformed", new_img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
         print("Done with WAaAaaaARrrrRRppPpp")
 
-    
+    def transform(self, og_img, og_points, new_points):
+        """
+        Transforms the og image into the new image
+        @param og_img
+        @param og_points
+        @param new_points
+        """
+        print("Transform has started")
+
+        new_img = og_img.copy()    
+
+        for set in self.get_triangle_set(og_points):
+
+            #Get the triangles 
+            og_tri = og_points[set]
+            new_tri = new_points[set]
+
+            #get rid of everything around the triangle with a crop
+            og_tri_crop, og_img_crop = self.crop_triangle(og_img, og_tri)
+            new_tri_crop, new_img_crop = self.crop_triangle(new_img, new_tri)
+
+            #get the affine transform matrix
+            matrix = cv2.getAffineTransform(np.float32(og_tri_crop), np.float32(new_tri_crop))
+
+            #warp
+            new_img_warp = cv2.warpAffine(og_img_crop, matrix, (new_img_crop.shape[1], new_img_crop.shape[0]), None, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
+
+            #create triangle mask
+            mask = np.zeros(new_img_crop.shape, dtype = np.uint8)
+            cv2.fillConvexPoly(mask, np.int32(new_tri_crop), (1.0, 1.0, 1.0), 16, 0)
+
+            #Remove pixels that are already there
+            new_img_crop *= 1-mask
+            #Add pixels back in masked area
+            new_img_crop += new_img_warp*mask
+
+        print("Successfully Transformed")
+        return new_img
+
+    def get_triangle_set(self, points):
+        """
+        Gets the indices triples for every triangle
+        @param points
+        """        
+        #bound rectangle
+        bound_rect = (0, 0, (points[0][0]+1), (points[1][1]+1))
+
+        #triangulate the points
+        subDiv = cv2.Subdiv2D(bound_rect)
+        print(points)
+        print(bound_rect)
+        for p in points:
+            point = (int(p[0]), int(p[1]))
+            subDiv.insert(point)
+
+        #Go over all tri's
+        for x1, y1, x2, y2, x3, y3 in subDiv.getTriangleList():
+            #get index of all of the points
+            yield [(points==point).all(axis=1).nonzero()[0][0] for point in [(x1,y1), (x2,y2), (x3,y3)]]
+
+
+    def crop_triangle(self, img, tri):
+        """
+        Crops the image so that it only contains the triangle
+        @param img
+        @param tri
+        @return tri_crop, img_crop
+        """
+
+        #get the bounds
+        bound_rect = cv2.boundingRect(tri)
+
+        #crop the image to bounds
+        img_crop = img[bound_rect[1]:bound_rect[1] + bound_rect[3], bound_rect[0]:bound_rect[0] + bound_rect[2]]
+
+        #put triangle in the non cropped area
+        tri_crop = [(edge[0]-bound_rect[0], edge[1]-bound_rect[1]) for edge in tri]
+
+        #return the cropped triangle and the cropped image
+        return tri_crop, img_crop
+
+
     def unwarp(self, vol, seg_dir):
         """
         Unwarps the previous warp to return image to og state
@@ -283,10 +373,18 @@ class VolumeWarpWindow(QtWidgets.QWidget):
         @param segmentation directory 
         """
         slice_num = self.slice_slider.value()
+        width = vol.shape[2]
+        height = vol.shape[1]
 
         #Add all of the boarder points as the first 4 points in the ogPoints list
-        boarder_points = ([[0,0], [vol.shape[2],0], [0,vol.shape[1]], [vol.shape[2],vol.shape[1]]])
+        boarder_points = ([[width,0], [0,height], [width,height]]) #not including zerp bc grid includes it
         self.ogWarpPoints.setdefault(slice_num, []).extend(boarder_points) 
+        grid_points = ([])
+        for i in range(0, width+1, int(width/self.gridSize)):
+            for j in range(0, height+1, int(height/self.gridSize)):
+                grid_points.append([i,j])
+                self.grid_point_count += 1
+        self.ogWarpPoints[slice_num].extend(grid_points)
 
         #adding each point as (x,y) to the list
         for point in self.lines[self.active_line][slice_num]:
@@ -295,6 +393,7 @@ class VolumeWarpWindow(QtWidgets.QWidget):
 
         #setting up the new points dict so its ready for the new points
         self.newWarpPoints.setdefault(slice_num, []).extend(boarder_points) 
+        self.newWarpPoints[slice_num].extend(grid_points)
         
         print("new Points dict - list started")
 
@@ -481,7 +580,7 @@ class VolumeWarpWindow(QtWidgets.QWidget):
             if self.settingNewPoints:
                 #printing out the new points for warp
                 if int(val) in self.newWarpPoints:
-                    for i in range(4, len(self.newWarpPoints[int(val)])-1): #not including the 4 boarder points
+                    for i in range((3+self.grid_point_count), len(self.newWarpPoints[int(val)])-1): #not including the 4 boarder points
                         point = self.newWarpPoints[int(val)][i]
                         next_point = self.newWarpPoints[int(val)][i + 1]
                         self.ax.plot([point[0], next_point[0]],
@@ -491,7 +590,7 @@ class VolumeWarpWindow(QtWidgets.QWidget):
                         self.ax.add_artist(
                             plt.Circle((point[0], point[1]), circle_size,
                                         facecolor='none', edgecolor='blue',  alpha = alpha_value))
-                    if len(self.newWarpPoints[int(val)]) > 4:
+                    if len(self.newWarpPoints[int(val)]) > (3+self.grid_point_count):
                         self.ax.add_artist(
                             plt.Circle((self.newWarpPoints[int(val)][-1][0], self.newWarpPoints[int(val)][-1][1]),
                                         3.5, color='blue',  alpha = alpha_value))
