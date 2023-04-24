@@ -101,6 +101,9 @@ class MainWindow(QtWidgets.QWidget):
         self.resolution_slider.setTickInterval(1)
         self.resolution_slider.valueChanged.connect(
             lambda: self.update_resolution(vol, self.resolution_slider.value()))
+        res_slider_layout = QtWidgets.QHBoxLayout()
+        res_slider_layout.addWidget(self.resolution_label)
+        res_slider_layout.addWidget(self.resolution_slider)
         # Slider index box
         self.slice_index_label = QtWidgets.QLabel("Slice Index: ")
         self.slice_index = IntLineEdit(self, vol, seg_dir)                                  #IntLineEdit ignores arrow key input to QLineEdit text boxes
@@ -147,8 +150,6 @@ class MainWindow(QtWidgets.QWidget):
         slider_layout = QtWidgets.QHBoxLayout()
         slider_layout.addWidget(self.slider_label)
         slider_layout.addWidget(self.slice_slider)
-        slider_layout.addWidget(self.resolution_label)
-        slider_layout.addWidget(self.resolution_slider)
         slider_layout.addWidget(self.slice_index_label)
         slider_layout.addWidget(self.slice_index)
         slider_layout.addSpacing(10)
@@ -319,6 +320,7 @@ class MainWindow(QtWidgets.QWidget):
         segmentation_opt_layout = QtWidgets.QVBoxLayout()
         segmentation_options.setLayout(segmentation_opt_layout)
         segmentation_opt_layout.addLayout(views_buttons_layout)
+        segmentation_opt_layout.addLayout(res_slider_layout)
         segmentation_opt_layout.addWidget(self.undo_point_button)
         segmentation_opt_layout.addWidget(self.clear_slice_button)
         segmentation_opt_layout.addWidget(self.clear_all_button)
