@@ -679,12 +679,7 @@ class MainWindow(QtWidgets.QWidget):
                                 self.key_slice_drop_down.setCurrentText(str(slice_num))
                 else: 
                     # If pan ends up outside of bounds, move it back in
-
-                    print(self.zoom_width, self.zoom_height)
                     # Resize zoom boundaries
-                    #self.zoom_width = [self.zoom_width[0] * self.resolution_div, self.zoom_width[1] * self.resolution_div]
-                    #self.zoom_height = [self.zoom_height[0] * self.resolution_div, self.zoom_height[1] * self.resolution_div]
-
                     self.fixPan(event)
             else:
                 slice_num = self.slice_slider.value()
