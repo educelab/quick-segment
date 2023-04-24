@@ -365,6 +365,8 @@ class MainWindow(QtWidgets.QWidget):
         self.xAxisLim = None
         self.yAxisLim = None
         self.pan_limit = False
+        self.global_xlim = self.vol[0].shape[1]
+        self.global_ylim = self.vol[0].shape[0]
 
         # ---------------------------Segmentation Point Drawing---------------------------
         cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -791,14 +793,14 @@ class MainWindow(QtWidgets.QWidget):
             self.ax.set_ylim(curr_yAxisLim)
 
         # If pan goes off the right side
-        if (curr_xAxisLim[1] > global_xlim):
+        if (curr_xAxisLim[1] > self.global_xlim):
 
             # Save difference between the side off the screen and the limit to fix the opposing side
-            xdif = curr_xAxisLim[1] - global_xlim
+            xdif = curr_xAxisLim[1] - self.global_xlim
 
             # Adjust limits
             list_curr_xAxisLim = list(curr_xAxisLim)
-            list_curr_xAxisLim[1] = global_xlim
+            list_curr_xAxisLim[1] = self.global_xlim
             list_curr_xAxisLim[0] -= xdif
             curr_xAxisLim = tuple(list_curr_xAxisLim)
 
@@ -807,14 +809,14 @@ class MainWindow(QtWidgets.QWidget):
             self.ax.set_ylim(curr_yAxisLim)
 
         # If pan goes off the bottom
-        if (curr_yAxisLim[0] > global_ylim):
+        if (curr_yAxisLim[0] > self.global_ylim):
 
             # Save difference between the side off the screen and the limit to fix the opposing side
-            ydif = curr_yAxisLim[0] - global_ylim
+            ydif = curr_yAxisLim[0] - self.global_ylim
 
             # Adjust limits
             list_curr_yAxisLim = list(curr_yAxisLim)
-            list_curr_yAxisLim[0] = global_ylim
+            list_curr_yAxisLim[0] = self.global_ylim
             list_curr_yAxisLim[1] -= ydif
             curr_yAxisLim = tuple(list_curr_yAxisLim)
 
