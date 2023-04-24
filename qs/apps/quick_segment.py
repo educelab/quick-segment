@@ -64,8 +64,8 @@ class MainWindow(QtWidgets.QWidget):
         #adding widgets to the layout
         slice_layout.addWidget(self.toolbar) #if not added to the layout it is added within the canvas as a collapsed version
         slice_layout.addWidget(self.canvas)
-    
         
+
         self.insert_ax(vol, initial_slice)
 
         # Toolbar side of GUI layout
@@ -74,13 +74,24 @@ class MainWindow(QtWidgets.QWidget):
 
         # ----------------Slice Navigation-------------------
         # Slider label
-        self.slider_label = QtWidgets.QLabel("Slice [idx]")
+        self.slider_label = QtWidgets.QLabel("Slice [idx]:")
         # Slider
         self.slice_slider = QtWidgets.QSlider(Qt.Orientation.Horizontal)
         self.slice_slider.setMinimum(initial_slice)
         self.slice_slider.setMaximum(vol.shape[0] - 1)
         self.slice_slider.valueChanged.connect(
             lambda: self.update_slice(vol, self.slice_slider.value()))
+        # Resolution label
+        self.resolution_label = QtWidgets.QLabel("  Resolution:")
+        # Resolution Slider
+        self.resolution_slider = QtWidgets.QSlider(Qt.Orientation.Horizontal)
+        self.resolution_slider.setMinimum(1)
+        self.resolution_slider.setMaximum(11)
+        self.resolution_slider.setFixedWidth(200)
+        self.resolution_slider.setTickPosition(QtWidgets.QSlider.TickPosition.TicksBelow)
+        self.resolution_slider.setTickInterval(1)
+        self.resolution_slider.valueChanged.connect(
+            lambda: self.update_resolution(vol, self.resolution_slider.value()))
         # Slider index box
         self.slice_index_label = QtWidgets.QLabel("Slice Index: ")
         self.slice_index = IntLineEdit(self, vol, seg_dir)                                  #IntLineEdit ignores arrow key input to QLineEdit text boxes
@@ -127,6 +138,8 @@ class MainWindow(QtWidgets.QWidget):
         slider_layout = QtWidgets.QHBoxLayout()
         slider_layout.addWidget(self.slider_label)
         slider_layout.addWidget(self.slice_slider)
+        slider_layout.addWidget(self.resolution_label)
+        slider_layout.addWidget(self.resolution_slider)
         slider_layout.addWidget(self.slice_index_label)
         slider_layout.addWidget(self.slice_index)
         slider_layout.addSpacing(10)
@@ -227,6 +240,7 @@ class MainWindow(QtWidgets.QWidget):
         self.init_y_zoom = self.ax.get_ylim()
         self.zoom_width = self.init_x_zoom
         self.zoom_height = self.init_y_zoom
+        self.resolution_div = 1
         self.xAxisLim = None
         self.yAxisLim = None
         self.pan_limit = False
@@ -263,8 +277,17 @@ class MainWindow(QtWidgets.QWidget):
                     cur_xlim[1] <= global_xlim and cur_ylim[1] <= global_ylim):
                     scale_factor = base_scale
                 else:
-                    self.ax.set_xlim(self.init_x_zoom)
-                    self.ax.set_ylim(self.init_y_zoom)
+
+                    x_zoom = []
+                    y_zoom = []
+
+                    for value in self.init_x_zoom:
+                        x_zoom.append(value / self.resolution_div)
+                    for value in self.init_y_zoom:
+                        y_zoom.append(value / self.resolution_div)
+
+                    self.ax.set_xlim(tuple(x_zoom))
+                    self.ax.set_ylim(tuple(y_zoom))
                     self.zoom_width = self.init_x_zoom
                     self.zoom_height = self.init_y_zoom
                     zoom_limit = True
@@ -288,7 +311,12 @@ class MainWindow(QtWidgets.QWidget):
                 self.ax.set_xlim(self.zoom_width)
                 self.ax.set_ylim(self.zoom_height)
             
+                # Resize zoom boundaries
+                self.zoom_width = [self.zoom_width[0] * self.resolution_div, self.zoom_width[1] * self.resolution_div]
+                self.zoom_height = [self.zoom_height[0] * self.resolution_div, self.zoom_height[1] * self.resolution_div]
+
             self.canvas.draw()
+
             self.toolbar.push_current()
 
 
@@ -297,18 +325,16 @@ class MainWindow(QtWidgets.QWidget):
         for i in range(len(self.lines[line_idx][key_slice]) - 1):
             point = self.lines[line_idx][key_slice][i]
             next_point = self.lines[line_idx][key_slice][i + 1]
-            self.ax.plot([point[0], next_point[0]], [point[1], next_point[1]],
+            self.ax.plot([point[0] / self.resolution_div, next_point[0] / self.resolution_div], [point[1] / self.resolution_div, next_point[1] / self.resolution_div],
                          color=shadow_color, alpha=0.5)
             self.ax.add_artist(
-                plt.Circle((point[0], point[1]), 3.5, color=shadow_color,
+                plt.Circle((point[0] / self.resolution_div, point[1] / self.resolution_div), 3.5 / self.resolution_div, color=shadow_color,
                            alpha=0.5))
-        self.ax.add_artist(plt.Circle((self.lines[line_idx][key_slice][-1][0],
-                                       self.lines[line_idx][key_slice][-1][1]),
-                                      3.5, color=shadow_color, alpha=0.5))
-        self.ax.add_artist(plt.Rectangle((self.lines[line_idx][key_slice][0][
-                                              0] - 3.5,
-                                          self.lines[line_idx][key_slice][0][
-                                              1] - 3.5), 7.5, 7.5,
+        self.ax.add_artist(plt.Circle((self.lines[line_idx][key_slice][-1][0] / self.resolution_div,
+                                       self.lines[line_idx][key_slice][-1][1] / self.resolution_div),
+                                      3.5 / self.resolution_div, color=shadow_color, alpha=0.5))
+        self.ax.add_artist(plt.Rectangle(((self.lines[line_idx][key_slice][0][0] - 3.5) / self.resolution_div,
+                                          (self.lines[line_idx][key_slice][0][1] - 3.5) / self.resolution_div), 7.5 / self.resolution_div, 7.5 / self.resolution_div,
                                          color=shadow_color, alpha=1,
                                          zorder=50))
 
@@ -364,14 +390,29 @@ class MainWindow(QtWidgets.QWidget):
         self.canvas.draw_idle()
         return False
 
+    # Updates the resolution of the slice
+    def update_resolution(self, vol, val):
+        self.resolution_div = val
+        self.update_slice(self.vol, self.slice_slider.value())
 
     # Loads the slice and its points
     def update_slice(self, vol, val):
         self.ax.clear()
-        self.ax.imshow(vol[val])
+        picture = vol[val][::self.resolution_div, ::self.resolution_div]
+        self.ax.imshow(picture)        
 
-        self.ax.set_xlim(self.zoom_width)
-        self.ax.set_ylim(self.zoom_height)
+        new_width = []
+        new_height = []
+        for w_pix in self.zoom_width:
+            new_width.append(w_pix / self.resolution_div)
+        for h_pix in self.zoom_height:
+            new_height.append(h_pix / self.resolution_div)
+        # Convert the list to a tuple
+        width_tuple = tuple(new_width)
+        height_tuple = tuple(new_height)
+
+        self.ax.set_xlim(width_tuple)
+        self.ax.set_ylim(height_tuple)
 
         # update the slice index box
         self.slice_index.setText(str(val))
@@ -380,7 +421,7 @@ class MainWindow(QtWidgets.QWidget):
             lines = self.lines[uuid]
 
             if uuid == self.active_line:
-                circle_size = 7
+                circle_size = 7 / self.resolution_div
             else:
                 circle_size = 0
 
@@ -394,14 +435,12 @@ class MainWindow(QtWidgets.QWidget):
             # loading in the points ghost (preview)
             if self.show_shadows_toggle.isChecked() and len(lines) != 0:
                 # putting in shadow for the previous key slice
-                last_slice = find_previous_key(int(val),
-                                               lines)  # previous key slice shadow
+                last_slice = find_previous_key(int(val), lines)  # previous key slice shadow
                 if last_slice != -1:
                     self.draw_shadow(uuid, 'black', last_slice[0][2])
 
                 # putting in the shadow for the next key slice
-                next_slice = find_next_key(int(val),
-                                           lines)  # next key slice shadow
+                next_slice = find_next_key(int(val), lines)  # next key slice shadow
                 if next_slice != -1:
                     self.draw_shadow(uuid, 'white', next_slice[0][2])
 
@@ -410,18 +449,18 @@ class MainWindow(QtWidgets.QWidget):
                 for i in range(len(lines[int(val)]) - 1):
                     point = lines[int(val)][i]
                     next_point = lines[int(val)][i + 1]
-                    self.ax.plot([point[0], next_point[0]],
-                                    [point[1], next_point[1]], color='red')
+                    self.ax.plot([point[0] / self.resolution_div, next_point[0] / self.resolution_div],
+                                    [point[1] / self.resolution_div, next_point[1] / self.resolution_div], color='red')
                     self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), 3.5, color='red'))
+                        plt.Circle((point[0] / self.resolution_div, point[1] / self.resolution_div), 3.5 / self.resolution_div, color='red'))
                     self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), circle_size,
+                        plt.Circle((point[0] / self.resolution_div, point[1] / self.resolution_div), circle_size,
                                     facecolor='none', edgecolor='red'))
                 self.ax.add_artist(
-                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
-                                3.5, color='red'))
+                    plt.Circle((lines[int(val)][-1][0] / self.resolution_div, lines[int(val)][-1][1] / self.resolution_div),
+                                3.5 / self.resolution_div, color='red'))
                 self.ax.add_artist(
-                    plt.Circle((lines[int(val)][-1][0], lines[int(val)][-1][1]),
+                    plt.Circle((lines[int(val)][-1][0] / self.resolution_div, lines[int(val)][-1][1] / self.resolution_div),
                                 circle_size, facecolor='none', edgecolor='red'))
 
             # drawing the interpolated points on slices between keyslices
@@ -434,22 +473,22 @@ class MainWindow(QtWidgets.QWidget):
                     next_point = interpolate_point(int(val),
                                                    previous_key[i + 1],
                                                    next_key[i + 1])
-                    self.ax.plot([point[0], next_point[0]],
-                                 [point[1], next_point[1]], color='yellow')
+                    self.ax.plot([point[0] / self.resolution_div, next_point[0] / self.resolution_div],
+                                 [point[1] / self.resolution_div, next_point[1] / self.resolution_div], color='yellow')
                     self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), 3.5, color='yellow'))
+                        plt.Circle((point[0] / self.resolution_div, point[1] / self.resolution_div), 3.5 / self.resolution_div, color='yellow'))
                     self.ax.add_artist(
-                        plt.Circle((point[0], point[1]), circle_size,
+                        plt.Circle((point[0] / self.resolution_div, point[1] / self.resolution_div), circle_size,
                                    facecolor='none', edgecolor='yellow'))
                     point = next_point
 
                 last_point = interpolate_point(int(val), previous_key[-1],
                                                next_key[-1])
                 self.ax.add_artist(
-                    plt.Circle((last_point[0], last_point[1]), 3.5,
+                    plt.Circle((last_point[0] / self.resolution_div, last_point[1] / self.resolution_div), 3.5 / self.resolution_div,
                                color='yellow'))
                 self.ax.add_artist(
-                    plt.Circle((last_point[0], last_point[1]), circle_size,
+                    plt.Circle((last_point[0] / self.resolution_div, last_point[1] / self.resolution_div), circle_size,
                                facecolor='none', edgecolor='yellow'))
 
         self.canvas.draw_idle()
@@ -464,8 +503,12 @@ class MainWindow(QtWidgets.QWidget):
     def onrelease(self, event):
         # Release pan and get current xlimit and y limit values
         self.canvas.toolbar.release_pan(event)
-        curr_xAxisLim = self.ax.get_xlim()
-        curr_yAxisLim = self.ax.get_ylim()
+        curr_xAxisLim_orig = self.ax.get_xlim()
+        curr_yAxisLim_orig = self.ax.get_ylim()
+
+        # Correct the sizing of the image
+        curr_xAxisLim = [curr_xAxisLim_orig[0] * self.resolution_div, curr_xAxisLim_orig[1] * self.resolution_div]
+        curr_yAxisLim = [curr_yAxisLim_orig[0] * self.resolution_div, curr_yAxisLim_orig[1] * self.resolution_div]
 
         if event.button == 1: # Left release
             if self.moved_point == False:
@@ -474,19 +517,19 @@ class MainWindow(QtWidgets.QWidget):
                 if self.xAxisLim == curr_xAxisLim and self.yAxisLim == curr_yAxisLim:
                     if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
                         slice_num = self.slice_slider.value()
-                        new_point = [event.xdata, event.ydata, slice_num]
+                        new_point = [event.xdata * self.resolution_div, event.ydata * self.resolution_div, slice_num]
                         self.lines[self.active_line].setdefault(slice_num, []).append(
                             new_point)
 
                         # drawing the line between the past and new point
                         if len(self.lines[self.active_line][slice_num]) > 1:
                             prev_point = self.lines[self.active_line][slice_num][-2]
-                            self.ax.plot([prev_point[0], new_point[0]],
-                                        [prev_point[1], new_point[1]], color='red')
+                            self.ax.plot([prev_point[0] / self.resolution_div, new_point[0] / self.resolution_div],
+                                        [prev_point[1] / self.resolution_div, new_point[1] / self.resolution_div], color='red')
                         self.ax.add_artist(
-                            plt.Circle((event.xdata, event.ydata), 3.5, color="red"))
+                            plt.Circle((event.xdata, event.ydata), 3.5 / self.resolution_div, color="red"))
                         self.ax.add_artist(
-                            plt.Circle((event.xdata, event.ydata), 7, facecolor='none',
+                            plt.Circle((event.xdata, event.ydata), 7 / self.resolution_div, facecolor='none',
                                     edgecolor='red'))
                         self.canvas.draw_idle()
 
@@ -499,7 +542,7 @@ class MainWindow(QtWidgets.QWidget):
                                                         self.lines[self.active_line])  # previous key slice shadow
                             if last_slice != -1:
                                 self.ax.add_artist(
-                                    plt.Circle((last_slice[drawn_points][0], last_slice[drawn_points][1]), 7, facecolor='none',
+                                    plt.Circle((last_slice[drawn_points][0] / self.resolution_div, last_slice[drawn_points][1] / self.resolution_div), 7 / self.resolution_div, facecolor='none',
                                             edgecolor='black'))
 
                             # putting in the shadow for the next key slice
@@ -507,7 +550,7 @@ class MainWindow(QtWidgets.QWidget):
                                                         self.lines[self.active_line])  # next key slice shadow
                             if next_slice != -1:
                                 self.ax.add_artist(
-                                    plt.Circle((next_slice[drawn_points][0], next_slice[drawn_points][1]), 7, facecolor='none',
+                                    plt.Circle((next_slice[drawn_points][0] / self.resolution_div, next_slice[drawn_points][1] / self.resolution_div), 7 / self.resolution_div, facecolor='none',
                                             edgecolor='white'))
 
                         # on slice that has point == key slice and add it to the key slice list
@@ -519,6 +562,12 @@ class MainWindow(QtWidgets.QWidget):
                                 self.key_slice_drop_down.setCurrentText(str(slice_num))
                 else: 
                     # If pan ends up outside of bounds, move it back in
+
+                    print(self.zoom_width, self.zoom_height)
+                    # Resize zoom boundaries
+                    #self.zoom_width = [self.zoom_width[0] * self.resolution_div, self.zoom_width[1] * self.resolution_div]
+                    #self.zoom_height = [self.zoom_height[0] * self.resolution_div, self.zoom_height[1] * self.resolution_div]
+
                     self.fixPan(event)
             else:
                 slice_num = self.slice_slider.value()
@@ -533,9 +582,9 @@ class MainWindow(QtWidgets.QWidget):
                 # Make sure the point is red
                 point = self.lines[self.active_line][slice_num][self.clickedPointVal]
                 self.ax.add_artist(
-                    plt.Circle((point[0], point[1]), 3.5, color="red"))
+                    plt.Circle((point[0] / self.resolution_div, point[1] / self.resolution_div), 3.5 / self.resolution_div, color="red"))
                 self.ax.add_artist(
-                    plt.Circle((point[0], point[1]), 7, facecolor='none', edgecolor='red'))
+                    plt.Circle((point[0] / self.resolution_div, point[1] / self.resolution_div), 7 / self.resolution_div, facecolor='none', edgecolor='red'))
                 self.canvas.draw_idle()
                 self.moved_point == True
 
@@ -557,8 +606,12 @@ class MainWindow(QtWidgets.QWidget):
 
                 if event.button == 1: # Left click
                     # Save current values for limits
-                    self.xAxisLim = self.ax.get_xlim()
-                    self.yAxisLim = self.ax.get_ylim()
+                    new_xAxisLim = self.ax.get_xlim()
+                    new_yAxisLim = self.ax.get_ylim()
+
+                    # Correct the sizing of the image
+                    self.xAxisLim = [new_xAxisLim[0] * self.resolution_div, new_xAxisLim[1] * self.resolution_div]
+                    self.yAxisLim = [new_yAxisLim[0] * self.resolution_div, new_yAxisLim[1] * self.resolution_div]
 
                     if (self.xAxisLim[0] >= 0 and self.yAxisLim[1] >= 0 and 
                     self.xAxisLim[1] <= self.global_xlim and self.yAxisLim[0] <= self.global_ylim):
@@ -585,9 +638,10 @@ class MainWindow(QtWidgets.QWidget):
     :param event
     """
     def fixPan(self, event):
+        print(self.zoom_width, self.zoom_height)
         # Save current values
-        curr_xAxisLim = self.ax.get_xlim()
-        curr_yAxisLim = self.ax.get_ylim()
+        curr_xAxisLim = self.ax.get_xlim() #* self.resolution_div
+        curr_yAxisLim = self.ax.get_ylim() #* self.resolution_div
 
         # If pan goes off the left side
         if (curr_xAxisLim[0] < 0):
@@ -707,7 +761,7 @@ class MainWindow(QtWidgets.QWidget):
             elif sliceNum > vol.shape[0] - 1:
                 sliceNum = sliceNum - vol.shape[0]
             self.slice_index.setText(str(sliceNum))
-
+            
             self.slice_slider.setValue(sliceNum)
 
     # Function that is used to set the current jump size using the text input box
@@ -746,6 +800,7 @@ class MainWindow(QtWidgets.QWidget):
         elif slice_num > vol.shape[0] - 1:
             slice_num = slice_num - vol.shape[0]
 
+        print(self.zoom_width, self.zoom_height)
         self.slice_slider.setValue(slice_num)  # setting slider value and auto calling the update function
 
     def merge_segmentations(self, vol, seg_dir):
