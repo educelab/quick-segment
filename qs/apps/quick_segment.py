@@ -112,15 +112,6 @@ class MainWindow(QtWidgets.QWidget):
         self.slice_index.setPlaceholderText("0")
         self.slice_index.returnPressed.connect(
             lambda: self.set_slice(vol, self.slice_index.text()))
-        # Big Jump box
-        self.jumpNum = 50
-        self.jump_label = QtWidgets.QLabel("Jump Size: ")
-        self.jump_index = IntLineEdit(self, vol, seg_dir)                                  #IntLineEdit ignores arrow key input to QLineEdit text boxes
-        self.jump_index.setMaxLength(5)
-        self.jump_index.setFixedWidth(100)
-        self.jump_index.setPlaceholderText(str(self.jumpNum))
-        self.jump_index.returnPressed.connect(
-            lambda: self.set_jump(self.jump_index.text()))
         # Step slice navigation
         self.big_step_decrease_button = QtWidgets.QPushButton()
         self.big_step_decrease_button.setIcon(QIcon(':/icons/double_arrow_left'))
@@ -139,6 +130,17 @@ class MainWindow(QtWidgets.QWidget):
             QIcon(':/icons/double_arrow_right'))
         self.big_step_increase_button.clicked.connect(
             lambda: self.step_slice(vol, "Multi Step Increase"))
+         # Big Jump box
+        self.jumpNum = 50
+        self.jump_label = QtWidgets.QLabel("Jump Size:")
+        self.jump_label.setFixedWidth(75)
+        self.jump_index = IntLineEdit(self, vol, seg_dir)                                  #IntLineEdit ignores arrow key input to QLineEdit text boxes
+        self.jump_index.setMaxLength(5)
+        self.jump_index.setFixedWidth(177)
+        self.jump_index.setPlaceholderText(str(self.jumpNum))
+        self.jump_index.returnPressed.connect(
+            lambda: self.set_jump(self.jump_index.text()))
+
         # Key Slice drop down navigation
         self.key_slice_drop_down = QtWidgets.QComboBox()
         self.key_slice_drop_down.addItem("~")
@@ -153,15 +155,15 @@ class MainWindow(QtWidgets.QWidget):
         slider_layout.addWidget(self.slice_index_label)
         slider_layout.addWidget(self.slice_index)
         slider_layout.addSpacing(10)
-        slider_layout.addWidget(self.jump_label)
-        slider_layout.addWidget(self.jump_index)
+        slider_layout.addWidget(self.key_slice_drop_down)
         # adding step nav to layout
         step_layout = QtWidgets.QHBoxLayout()
         step_layout.addWidget(self.big_step_decrease_button)
         step_layout.addWidget(self.step_decrease_button)
         step_layout.addWidget(self.step_increase_button)
         step_layout.addWidget(self.big_step_increase_button)
-        step_layout.addWidget(self.key_slice_drop_down)
+        step_layout.addWidget(self.jump_label)
+        step_layout.addWidget(self.jump_index)
         # adding to overall window layout
         slice_layout.addLayout(slider_layout)
         slice_layout.addLayout(step_layout)
