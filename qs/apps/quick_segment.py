@@ -344,7 +344,7 @@ class MainWindow(QtWidgets.QWidget):
         segmentation_options.setLayout(segmentation_opt_layout)
         segmentation_opt_layout.addLayout(views_buttons_layout)
         segmentation_opt_layout.addLayout(colormap_buttons_layout)
-        segmentation_opt_layout.addLayout(res_slider_layout)
+        #segmentation_opt_layout.addLayout(res_slider_layout)
         segmentation_opt_layout.addWidget(self.undo_point_button)
         segmentation_opt_layout.addWidget(self.clear_slice_button)
         segmentation_opt_layout.addWidget(self.clear_all_button)
