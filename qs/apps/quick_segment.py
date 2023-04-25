@@ -48,7 +48,8 @@ class MainWindow(QtWidgets.QWidget):
         self.window_height = 800
         self.setMinimumSize(self.window_width, self.window_height)
         self.setWindowTitle("Interpolation Segmentation")
-        self.colormap = colors.ListedColormap(cm.get_cmap('bone', 512)(np.linspace(0.15, 0.85, 256)))
+        self.edge_colormap = colors.ListedColormap(cm.get_cmap('bone', 512)(np.linspace(0.15, 0.85, 256)))
+        self.colormap = colors.ListedColormap(cm.get_cmap('viridis', 512)(np.linspace(0, 1, 256)))
         self.vol = vol
 
         # ------------------------------Window GUI-----------------------------
@@ -201,6 +202,23 @@ class MainWindow(QtWidgets.QWidget):
         views_buttons_layout.addWidget(self.xz_button)
         views_buttons_layout.addWidget(self.yz_button)
 
+        # colormap buttnos
+        colormap_buttons_layout = QtWidgets.QHBoxLayout()
+        self.viridis_colormap_button = QtWidgets.QPushButton()
+        self.viridis_colormap_button.setStyleSheet("background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #541352, stop: 0.3 #3a5e8c, stop: 0.8 #10a53d, stop:1 #ffcf20);"
+                                                   "border-radius: 50%;")
+        self.viridis_colormap_button.clicked.connect(lambda: self.set_colormap(colors.ListedColormap(cm.get_cmap('viridis', 512)(np.linspace(0.0, 1, 256)))))
+        self.inferno_colormap_button = QtWidgets.QPushButton()
+        self.inferno_colormap_button.setStyleSheet('background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 black, stop: 0.5 red, stop:1 yellow); border-style: solid;')
+        self.inferno_colormap_button.clicked.connect(lambda: self.set_colormap(colors.ListedColormap(cm.get_cmap('inferno', 512)(np.linspace(0.0, 1, 256)))))
+        self.bone_colormap_button = QtWidgets.QPushButton()
+        self.bone_colormap_button.setStyleSheet('background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 black, stop: 0.4 gray, stop:1 white); border-style: solid;')
+        self.bone_colormap_button.clicked.connect(lambda: self.set_colormap(colors.ListedColormap(cm.get_cmap('Greys_r', 512)(np.linspace(0.0, 1, 256)))))
+        colormap_buttons_layout.addWidget(QtWidgets.QLabel("Colormaps:"))
+        colormap_buttons_layout.addWidget(self.viridis_colormap_button)
+        colormap_buttons_layout.addWidget(self.inferno_colormap_button)
+        colormap_buttons_layout.addWidget(self.bone_colormap_button)
+
         # Show slice shadows toggel 
         self.show_shadows_toggle = QtWidgets.QCheckBox("Show Slice Shadows")
         self.show_shadows_toggle.setChecked(True)
@@ -325,6 +343,7 @@ class MainWindow(QtWidgets.QWidget):
         segmentation_opt_layout = QtWidgets.QVBoxLayout()
         segmentation_options.setLayout(segmentation_opt_layout)
         segmentation_opt_layout.addLayout(views_buttons_layout)
+        segmentation_opt_layout.addLayout(colormap_buttons_layout)
         segmentation_opt_layout.addLayout(res_slider_layout)
         segmentation_opt_layout.addWidget(self.undo_point_button)
         segmentation_opt_layout.addWidget(self.clear_slice_button)
@@ -534,10 +553,10 @@ class MainWindow(QtWidgets.QWidget):
 
         self.ax.clear()
         if (self.show_edges_check.isChecked()):
-            self.ax.imshow(canny_edge(vol[val], int(self.edge_threshold1.text()), int(self.edge_threshold2.text()), dilation=2), cmap=self.colormap)
+            self.ax.imshow(canny_edge(vol[val], int(self.edge_threshold1.text()), int(self.edge_threshold2.text()), dilation=2), cmap=self.edge_colormap)
         else:
             picture = vol[val][::self.resolution_div, ::self.resolution_div]
-            self.ax.imshow(picture)        
+            self.ax.imshow(picture, cmap=self.colormap)        
 
         new_width = []
         new_height = []
@@ -1030,6 +1049,11 @@ class MainWindow(QtWidgets.QWidget):
     def popup(self):
         popup = ViewPopUp(self.vol, self.lines[self.active_line])
         popup.exec()
+
+    def set_colormap(self, colormap):
+        self.colormap = colormap
+        self.update_slice(self.vol, self.slice_slider.value())
+        return
         
     def show_view(self, view):
         self.ax.clear()
@@ -1067,10 +1091,11 @@ class MainWindow(QtWidgets.QWidget):
             slice_img = self.vol[zs, ys, xs].reshape(vol_height, vol_slices).transpose()
             self.perspective = 'yz'
 
-        self.ax.imshow(slice_img)
+        self.ax.imshow(slice_img, cmap=self.colormap)
         self.init_x_zoom = self.ax.get_xlim()
         self.init_y_zoom = self.ax.get_ylim()
         self.canvas.draw_idle()
+
 # This class blocks arrrow keys from QLineEdit and calls the desired slice step change
 class IntLineEdit(QtWidgets.QLineEdit):
     
