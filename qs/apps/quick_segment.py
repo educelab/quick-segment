@@ -207,14 +207,14 @@ class MainWindow(QtWidgets.QWidget):
         # undo last point button
         self.undo_point_button = QtWidgets.QPushButton()
         self.undo_point_button.setIcon(QIcon(':/icons/undo'))
-        self.undo_point_button.setText("Undo Point")
+        self.undo_point_button.setText("\tUndo Point")
         self.undo_point_button.setToolTip('Undo Last Point')
         #self.undo_point_button.setText('Undo Last Point')
         self.undo_point_button.clicked.connect(lambda: self.undo_point(vol))
         # clear slice button
         self.clear_slice_button = QtWidgets.QPushButton()
         self.clear_slice_button.setIcon(QIcon(':/icons/clear_slice'))
-        self.clear_slice_button.setText("Clear slice")
+        self.clear_slice_button.setText("\tClear slice")
         self.clear_slice_button.setToolTip('Clear Slice')
         #self.clear_slice_button.setText('Clear Slice')
         self.clear_slice_button.clicked.connect(lambda: self.clear_slice(vol))
@@ -233,7 +233,7 @@ class MainWindow(QtWidgets.QWidget):
         #  - second: create button
         self.clear_all_button = QtWidgets.QPushButton()
         self.clear_all_button.setIcon(QIcon(':/icons/clear_all_icon'))
-        self.clear_all_button.setText("Clear All Icons")
+        self.clear_all_button.setText("\tClear All  ")
         self.clear_all_button.setToolTip('Clear All')
         #self.clear_all_button.setText('Clear All')
         self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
