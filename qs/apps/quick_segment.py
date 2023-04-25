@@ -441,7 +441,6 @@ class MainWindow(QtWidgets.QWidget):
             else:
                 # deal with something that should never happen
                 scale_factor = 1
-                print(event.button)
 
             if (not zoom_limit):
                 # set new limits
@@ -776,7 +775,6 @@ class MainWindow(QtWidgets.QWidget):
     :param event
     """
     def fixPan(self, event):
-        print(self.zoom_width, self.zoom_height)
         # Save current values
         curr_xAxisLim = self.ax.get_xlim() #* self.resolution_div
         curr_yAxisLim = self.ax.get_ylim() #* self.resolution_div
@@ -938,7 +936,6 @@ class MainWindow(QtWidgets.QWidget):
         elif slice_num > vol.shape[0] - 1:
             slice_num = slice_num - vol.shape[0]
 
-        print(self.zoom_width, self.zoom_height)
         self.slice_slider.setValue(slice_num)  # setting slider value and auto calling the update function
 
     def merge_segmentations(self, vol, seg_dir):
