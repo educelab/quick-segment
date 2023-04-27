@@ -1,4 +1,5 @@
 # Quick Segment
+[![quick-segment](graphics/banner.svg)](https://gitlab.com/educelab/quick-segment)
 
 ## Installation
 
