@@ -13,7 +13,7 @@ python -m pip install -e .
 ## Usage
 
 ```shell
-python qs/apps/quick_segment.py
+python qs/apps/quick_segment.py --input-volpkg <volpkg_path> --volume <volume_id>
 ```
 
 ## Updating the resources file
