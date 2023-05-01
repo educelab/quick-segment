@@ -10,6 +10,12 @@ source venv/bin/activate
 python -m pip install -e .
 ```
 
+## Usage
+
+```shell
+python qs/apps/quick_segment.py
+```
+
 ## Updating the resources file
 Use `rcc` provided by Qt6 to process `resources.qrc`. By default, this produces 
 a file which imports PySide6, so make sure to modify the import for PyQt6.
