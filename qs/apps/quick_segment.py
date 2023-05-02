@@ -1140,21 +1140,20 @@ class IntLineEdit(QtWidgets.QLineEdit):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', "--input-volpkg", required=True)
-    parser.add_argument("--volume", type=int, default=0)
+    parser.add_argument("--volume", type=str, required=True)
     args = parser.parse_args()
 
     # ---------saving paths to folders within volume------------
     volpkg_path = Path(args.input_volpkg)
     volumes_dir = volpkg_path / 'volumes'
     segmentation_dir = volpkg_path / 'paths'
-    volumes = sorted([x for x in volumes_dir.iterdir() if x.is_dir()])
-    input_vol_dir = volumes[args.volume]
+    input_vol_dir = volumes_dir / args.volume
 
     # ----------------loading Zarr OR Volume------------------
     # Zarr = new volume representation -> Only loads chuncks which are needed = saves memory and is faster
     # Code from Stephen's volume.py (ink-id)
     start = time.time()
-    vol = Volume.from_path(str(input_vol_dir))
+    vol = Volume.from_path(input_vol_dir)
     end = time.time()
     print(f"{end - start} seconds to initialize {vol.shape} volume")
 
