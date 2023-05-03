@@ -140,7 +140,7 @@ class TutorialWindow(QtWidgets.QWidget):
         self.sv_label = QtWidgets.QLabel()
         sv_vid = QtGui.QMovie('qs/gifs/shadows.gif')
         #around 58:45 x20
-        sv_vid.setScaledSize(QtCore.QSize(600,470))
+        sv_vid.setScaledSize(QtCore.QSize(600,550))
         self.sv_label.setMovie(sv_vid)
         sv_vid.start()
         
@@ -170,7 +170,7 @@ class TutorialWindow(QtWidgets.QWidget):
         self.iv_label = QtWidgets.QLabel()
         iv_vid = QtGui.QMovie('qs/gifs/interpolation.gif')
         #around 58:45 x20
-        iv_vid.setScaledSize(QtCore.QSize(600,470))
+        iv_vid.setScaledSize(QtCore.QSize(600,550))
         self.iv_label.setMovie(iv_vid)
         iv_vid.start()
         
@@ -202,7 +202,7 @@ class TutorialWindow(QtWidgets.QWidget):
         self.snv_label = QtWidgets.QLabel()
         snv_vid = QtGui.QMovie('qs/gifs/slice_nav.gif')
         #around 58:45 x20
-        snv_vid.setScaledSize(QtCore.QSize(680,550))
+        snv_vid.setScaledSize(QtCore.QSize(600,550))
         self.snv_label.setMovie(snv_vid)
         snv_vid.start()
         
