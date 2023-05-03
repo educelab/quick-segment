@@ -161,6 +161,36 @@ class TutorialWindow(QtWidgets.QWidget):
         #add tab to list of tabs
         self.p4_index = self.tabs.addTab(self.page_4, "Shadows")
         
+        #---------------------------------Interpolation---------------------------------
+        self.i_label = QtWidgets.QLabel("\nInterpolation")
+        self.i_label.setFont(big_font)
+        self.i_descript_label = QtWidgets.QLabel(" - Between 2 red key slices there are interpolated segmentation lines represented by the yellow color")
+        
+        #----generate gif------
+        self.iv_label = QtWidgets.QLabel()
+        iv_vid = QtGui.QMovie('qs/gifs/interpolation.gif')
+        #around 58:45 x20
+        iv_vid.setScaledSize(QtCore.QSize(600,470))
+        self.iv_label.setMovie(iv_vid)
+        iv_vid.start()
+        
+        #add layout for info section
+        self.i_layout = QtWidgets.QVBoxLayout()
+        self.i_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.i_layout.addWidget(self.i_label)
+        self.i_layout.addWidget(self.i_descript_label)
+        
+        #create tab widget
+        self.page_5 =QtWidgets.QWidget()
+        self.p5_layout =  QtWidgets.QVBoxLayout()
+        self.p5_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.p5_layout.addLayout(self.i_layout)
+        self.p5_layout.addWidget(self.iv_label) #interp vid
+        self.page_5.setLayout(self.p5_layout)
+        
+        #add tab to list of tabs
+        self.p5_index = self.tabs.addTab(self.page_5, "Interpolation")
+        
         #---------------------------------Slice Navigation---------------------------------
         #need to split this into different pages for shorter gifs to lead
         
