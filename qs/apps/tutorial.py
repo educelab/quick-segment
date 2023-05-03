@@ -33,8 +33,16 @@ class TutorialWindow(QtWidgets.QWidget):
         # ------------------------------Window GUI-----------------------------
         # Overall Window layout
         window_layout = QtWidgets.QHBoxLayout()
-        window_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        self.setLayout(window_layout)
+        # window_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        # self.setLayout(window_layout)
+        
+        # self.window_layout_2 = QtWidgets.QHBoxLayout()
+        # self.window_layout_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+
+
+        self.tabs = QtWidgets.QTabWidget()
+        # self.tabs.setTabPosition(QtWidgets.QTabWidget.TabPosition.North)
+        # self.setCentralWidget(self.tabs)
         
         #----add in gif------
         self.video_label = QtWidgets.QLabel()
@@ -71,19 +79,52 @@ class TutorialWindow(QtWidgets.QWidget):
         self.s_label.setFont(big_font)
         self.s_descript_label = QtWidgets.QLabel(" - A shadow is your points from another key slice\n     - Black shadows are for prior key slices \n     - White shadows are for the succeeding key slices")
         
+        
         self.description_layout.addWidget(self.gc_label)
         self.description_layout.addWidget(self.gc_descript_label)
         self.description_layout.addWidget(self.lcm_label)
         self.description_layout.addWidget(self.lcm_descript_label)
         self.description_layout.addWidget(self.c_label)
         self.description_layout.addWidget(self.c_descript_label)
-        self.description_layout.addWidget(self.sn_label)
-        self.description_layout.addWidget(self.sn_descript_label)
-        self.description_layout.addWidget(self.s_label)
-        self.description_layout.addWidget(self.s_descript_label)
         
-        window_layout.addWidget(self.video_label)
-        window_layout.addLayout(self.description_layout)
+        self.description_layout_2 = QtWidgets.QVBoxLayout()
+        self.description_layout_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        
+        self.description_layout_2.addWidget(self.sn_label)
+        self.description_layout_2.addWidget(self.sn_descript_label)
+        self.description_layout_2.addWidget(self.s_label)
+        self.description_layout_2.addWidget(self.s_descript_label)
+        
+        self.next_button = QtWidgets.QPushButton("Next")
+        self.next_button.clicked.connect(lambda: self.next_tut_page())
+        self.description_layout.addWidget(self.next_button)
+        
+        #  self.window_layout_2.addLayout(self.description_layout_2)
+        
+        self.page_1 =QtWidgets.QWidget()
+        self.p1_layout =  QtWidgets.QHBoxLayout()
+        self.p1_layout.addWidget(self.video_label)
+        self.p1_layout.addLayout(self.description_layout)
+        self.page_1.setLayout(self.p1_layout)
+        
+        self.tabs.addTab(self.page_1, "Points")
+        
+        self.page_2 =QtWidgets.QWidget()
+        self.p2_layout =  QtWidgets.QHBoxLayout()
+        self.p2_layout.addWidget(self.video_label)
+        self.p2_layout.addLayout(self.description_layout_2)
+        self.page_2.setLayout(self.p2_layout)
+        
+        self.tabs.addTab(self.page_2, "Nav")
+        
+        window_layout.addWidget(self.tabs)
+        self.setLayout(window_layout)
+        
+        # window_layout.addWidget(self.video_label)
+        # window_layout.addLayout(self.description_layout)
+        
+    def next_tut_page(self):
+        self.setLayout(self.window_layout_2)
         
         
         

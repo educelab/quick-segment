@@ -48,7 +48,7 @@ class MainWindow(QtWidgets.QWidget):
         self.window_width = 900
         self.window_height = 800
         self.setMinimumSize(self.window_width, self.window_height)
-        self.setWindowTitle("Interpolation Segmentation")
+        self.setWindowTitle("Quick Segment - An Interpolation Segmentation Tool")
         self.edge_colormap = colors.ListedColormap(cm.get_cmap('bone', 512)(np.linspace(0.15, 0.85, 256)))
         self.colormap = colors.ListedColormap(cm.get_cmap('viridis', 512)(np.linspace(0, 1, 256)))
         self.vol = vol
