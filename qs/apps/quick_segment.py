@@ -17,6 +17,7 @@ from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
 
 # noinspection PyUnresolvedReferences
+from qs.apps.tutorial import TutorialWindow
 import qs.resources
 from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
                      load_json, load_vcps, write_metadata, write_ordered_vcps,
@@ -331,7 +332,12 @@ class MainWindow(QtWidgets.QWidget):
         edge_search_limit_layout = QtWidgets.QHBoxLayout()
         edge_search_limit_layout.addWidget(QtWidgets.QLabel("Max distance of edge:"))
         edge_search_limit_layout.addWidget(self.edge_search_limit)
-
+        
+        #tutorial button
+        self.tutorial_button = QtWidgets.QPushButton("Tutorial")
+        self.tutorial_button.clicked.connect(lambda: self.load_tutorial())
+        toolbar_layout.addWidget(self.tutorial_button)
+        
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
@@ -341,6 +347,7 @@ class MainWindow(QtWidgets.QWidget):
         segmentation_options.setLayout(segmentation_opt_layout)
         segmentation_opt_layout.addLayout(views_buttons_layout)
         segmentation_opt_layout.addLayout(colormap_buttons_layout)
+        
         #segmentation_opt_layout.addLayout(res_slider_layout)
         segmentation_opt_layout.addWidget(self.undo_point_button)
         segmentation_opt_layout.addWidget(self.clear_slice_button)
@@ -374,7 +381,10 @@ class MainWindow(QtWidgets.QWidget):
         self.incorrect_points.setDefaultButton(
             QMessageBox.StandardButton.Cancel)
         self.incorrect_points.buttonClicked.connect(lambda: False)
-
+        
+        #-----Tutrial windows and run throughs--------------
+        self.tutorial_popup = QtWidgets.QMessageBox()
+        
         # ---------------------------Variable Storage---------------------------------
         # lines is a dictionary that stores slice -> [list of points (x, y, z)]
         self.lines = dict()
@@ -399,6 +409,11 @@ class MainWindow(QtWidgets.QWidget):
         # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
         cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
 
+    
+    def load_tutorial(self):
+        self.tutorial_window = TutorialWindow()
+        self.tutorial_window.show()
+    
     # Function to be called when the mouse is scrolled
     def onScroll(self, event):
         if event.inaxes == self.ax:
