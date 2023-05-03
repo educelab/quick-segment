@@ -248,15 +248,12 @@ class MainWindow(QtWidgets.QWidget):
         self.clear_all_msg.setStandardButtons(
             QMessageBox.StandardButton.Cancel | QMessageBox.StandardButton.Yes)
         self.clear_all_msg.setDefaultButton(QMessageBox.StandardButton.Cancel)
-        self.clear_all_msg.buttonClicked.connect(
-            lambda i: False if (i.text() == 'Cancel') else self.clear_all(vol))
         #  - second: create button
         self.clear_all_button = QtWidgets.QPushButton()
         self.clear_all_button.setIcon(QIcon(':/icons/clear_all_icon'))
         self.clear_all_button.setText("\tClear All  ")
         self.clear_all_button.setToolTip('Clear All')
-        #self.clear_all_button.setText('Clear All')
-        self.clear_all_button.clicked.connect(lambda: self.clear_all_msg.exec())
+        self.clear_all_button.clicked.connect(lambda: self.clear_all(vol))
 
         # interpolation settings ---------------------------------------------------
         interpolation_options = QtWidgets.QGroupBox()
@@ -490,15 +487,20 @@ class MainWindow(QtWidgets.QWidget):
         #making sure to only delete points from current page
         if slice_num in self.lines[self.active_line]:
             length = len(self.lines[self.active_line][slice_num])
+            #checking for points
             if (length > 0):
                 #remove the last point drawn from the list
                 self.lines[self.active_line][slice_num].pop()
                 
-                #if there are no more points on the slice, remove the keyslice from the list
+                #if there are no more points on the slice, remove the keyslice from the list and drop down
                 if (length == 1):
                     self.lines[self.active_line].pop(slice_num)
+                    index = self.key_slice_drop_down.findText(str(slice_num))
+                    self.key_slice_drop_down.removeItem(index)
                 
                 self.update_slice(vol, slice_num)
+        else:
+            print("There are no points to undo on this slice")
 
 
     def insert_ax(self, vol, initial_slice):
@@ -1018,22 +1020,28 @@ class MainWindow(QtWidgets.QWidget):
         # Clear slice from key slices bar
         self.key_slice_drop_down.setCurrentText("~")
         # find the index of the slice to be removed in the key slice dropdown list
-        for i in range(1, self.key_slice_drop_down.count()):
-            if str(key) == self.key_slice_drop_down.itemText(i):
-                self.key_slice_drop_down.removeItem(i)
-
+        index = self.key_slice_drop_down.findText(str(key))
+        self.key_slice_drop_down.removeItem(index)
+        
         self.update_slice(vol, self.slice_slider.value())
 
-    def clear_all(self, vol):
-        # deletes the dictionary slice along with its points
-        self.lines[self.active_line].clear()
 
-        # clearing the key-slices drop down
-        self.key_slice_drop_down.clear()
-        self.key_slice_drop_down.addItem("~")
+    def clear_all(self, vol):   
+        #making sure the user choose to clear everything     
+        if self.clear_all_msg.exec() == QMessageBox.StandardButton.Yes:
+            print("Clearing all points from segmentation")
+            
+            # deletes the dictionary slice along with its points
+            self.lines[self.active_line].clear()
 
-        self.update_slice(vol, self.slice_slider.value())
-        return True
+            # clearing the key-slices drop down
+            self.key_slice_drop_down.clear()
+            self.key_slice_drop_down.addItem("~")
+
+            self.update_slice(vol, self.slice_slider.value())
+        #user choose to cancle
+        else:
+            print("You chose to cancle, no points have been removed")
     
     def interpolation_type_dropdown_handler(self, item):
         if(self.interpolation_type_dropdown.currentText() == 'linear'):
