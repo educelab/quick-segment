@@ -37,27 +37,52 @@ class TutorialWindow(QtWidgets.QWidget):
         self.setLayout(window_layout)
         
         #----add in gif------
-        self.test_label = QtWidgets.QLabel()
-        click_vid = QtGui.QMovie('qs/test_click.gif')
+        self.video_label = QtWidgets.QLabel()
+        click_vid = QtGui.QMovie('qs/basic_tutorial.gif')
         #around 58:45 x20
-        click_vid.setScaledSize(QtCore.QSize(580,450))
-        self.test_label.setMovie(click_vid)
+        # click_vid.setScaledSize(QtCore.QSize(580,450))
+        self.video_label.setMovie(click_vid)
         click_vid.start()
         
+        #----add in discription----
         self.description_layout = QtWidgets.QVBoxLayout()
         self.description_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        #----add in discription----
-        self.topic_label = QtWidgets.QLabel("\nAdding Points")
+        
         big_font = QtGui.QFont("San Francisco", 20)
         big_font.setBold(True)
-        self.topic_label.setFont(big_font)
-        # self.topic_label.setMaximumHeight(20)
-        self.descript_label = QtWidgets.QLabel("You can add points to a slice by clicking anywhere on the canvas")
-        # self.descript_label.setMaximumHeight(20)
-        self.description_layout.addWidget(self.topic_label)
-        self.description_layout.addWidget(self.descript_label)
+        #----General Click---->add
+        self.gc_label = QtWidgets.QLabel("\nAdding Points")
+        self.gc_label.setFont(big_font)
+        self.gc_descript_label = QtWidgets.QLabel("Left click on the canvas to add points")
+        #----Long Click Move---->move
+        self.lcm_label = QtWidgets.QLabel("\nMoving Points")
+        self.lcm_label.setFont(big_font)
+        self.lcm_descript_label = QtWidgets.QLabel("Left click on a point then drag and drop it where you want to move it to")
+        #----Canvas Zoom/pan----
+        self.c_label = QtWidgets.QLabel("\nCanvas Navigation")
+        self.c_label.setFont(big_font)
+        self.c_descript_label = QtWidgets.QLabel(" - Scrolling zooms in and out of the canvas\n - Left click hold drag and release allows you to pan")
+        #----Slice Navigation----
+        self.sn_label = QtWidgets.QLabel("\nSlice Navigation")
+        self.sn_label.setFont(big_font)
+        self.sn_descript_label = QtWidgets.QLabel(" - Single arrows move a single slice forward and backwards\n - Double arrows move to the nearest key slice in the given direciton,\n   when no key slice the number of slices indicated by the jump size box \n - The dropdown allows for viewing all of the key slices and navigate to them")
+        #----Shadows----
+        self.s_label = QtWidgets.QLabel("\nShadows")
+        self.s_label.setFont(big_font)
+        self.s_descript_label = QtWidgets.QLabel(" - A shadow is your points from another key slice\n     - Black shadows are for prior key slices \n     - White shadows are for the succeeding key slices")
         
-        window_layout.addWidget(self.test_label)
+        self.description_layout.addWidget(self.gc_label)
+        self.description_layout.addWidget(self.gc_descript_label)
+        self.description_layout.addWidget(self.lcm_label)
+        self.description_layout.addWidget(self.lcm_descript_label)
+        self.description_layout.addWidget(self.c_label)
+        self.description_layout.addWidget(self.c_descript_label)
+        self.description_layout.addWidget(self.sn_label)
+        self.description_layout.addWidget(self.sn_descript_label)
+        self.description_layout.addWidget(self.s_label)
+        self.description_layout.addWidget(self.s_descript_label)
+        
+        window_layout.addWidget(self.video_label)
         window_layout.addLayout(self.description_layout)
         
         
