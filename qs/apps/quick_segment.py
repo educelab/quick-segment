@@ -412,6 +412,7 @@ class MainWindow(QtWidgets.QWidget):
     
     def load_tutorial(self):
         self.tutorial_window = TutorialWindow()
+        self.tutorial_window.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.tutorial_window.show()
     
     # Function to be called when the mouse is scrolled

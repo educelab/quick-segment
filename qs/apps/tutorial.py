@@ -7,10 +7,13 @@ import time
 from pathlib import Path
 import numpy as np
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets, QtMultimediaWidgets, QtMultimedia
 from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtMultimediaWidgets import QVideoWidget
+from PyQt6.QtMultimedia import QMediaPlayer
+
 from matplotlib import pyplot as plt
 from matplotlib import cm, colors
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
@@ -24,12 +27,12 @@ class TutorialWindow(QtWidgets.QWidget):
         super().__init__()
         
         # -------------initial window specs---------------
-        self.window_width = 900
-        self.window_height = 800
-        # self.setMinimumSize(self.window_width, self.window_height)
+        self.window_width = 550
+        self.window_height = 750
+        self.setMinimumSize(self.window_width, self.window_height)
         self.setWindowTitle("Quick Segment Tutorial")
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         
-
         # ------------------------------Window GUI-----------------------------
         # Overall Window layout
         window_layout = QtWidgets.QHBoxLayout()
@@ -41,6 +44,21 @@ class TutorialWindow(QtWidgets.QWidget):
         #----Set big font---   
         big_font = QtGui.QFont("San Francisco", 20)
         big_font.setBold(True)
+        
+        #----generate movie------> does not show
+        self.sn_vid_layout = QtWidgets.QVBoxLayout()
+        self.sn_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+        
+        self.sn_player = QMediaPlayer()
+        self.sn_player.setSource(QtCore.QUrl('qs/mp4s/slice_nav.mp4'))
+        self.sn_vidWid = QVideoWidget()
+        self.sn_vidWid.setMaximumSize(550, 600)
+        self.sn_player.setVideoOutput(self.sn_vidWid)
+        self.sn_vidWid.show()
+        self.sn_player.play()
+        self.sn_player.setLoops(QMediaPlayer.Loops.Infinite)
+        
+        self.sn_vid_layout.addWidget(self.sn_vidWid)
         
         #--------------------------------General Click------------------------------>add
         self.gc_label = QtWidgets.QLabel("\nAdding Points")
@@ -54,7 +72,7 @@ class TutorialWindow(QtWidgets.QWidget):
         # click_vid.setScaledSize(QtCore.QSize(580,450))
         self.gcv_label.setMovie(click_vid)
         click_vid.start()
-        
+                                
         #add layout for info section
         self.gc_layout = QtWidgets.QVBoxLayout()
         self.gc_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
@@ -67,6 +85,7 @@ class TutorialWindow(QtWidgets.QWidget):
         self.p1_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.p1_layout.addLayout(self.gc_layout)
         self.p1_layout.addWidget(self.gcv_label) #click vid
+        # self.p1_layout.addWidget(self.sn_vidWid) #click vid
         self.page_1.setLayout(self.p1_layout)
         
         #add tab to list of tabs
@@ -97,6 +116,7 @@ class TutorialWindow(QtWidgets.QWidget):
         self.p2_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.p2_layout.addLayout(self.lmc_layout)
         self.p2_layout.addWidget(self.lmcv_label) #move vid
+        # self.p2_layout.addWidget(self.sn_vidWid) #move vid
         self.page_2.setLayout(self.p2_layout)
         
         #add tab to list of tabs
@@ -199,12 +219,12 @@ class TutorialWindow(QtWidgets.QWidget):
         self.sn_descript_label = QtWidgets.QLabel(" - Single arrows move a single slice forward and backwards\n - Double arrows move to the nearest key slice in the given direciton,\n   when no key slice the number of slices indicated by the jump size box \n - The dropdown allows for viewing all of the key slices and navigate to them")
         
         #----generate gif------
-        self.snv_label = QtWidgets.QLabel()
-        snv_vid = QtGui.QMovie('qs/gifs/slice_nav.gif')
-        #around 58:45 x20
-        snv_vid.setScaledSize(QtCore.QSize(600,550))
-        self.snv_label.setMovie(snv_vid)
-        snv_vid.start()
+        # self.snv_label = QtWidgets.QLabel()
+        # snv_vid = QtGui.QMovie('qs/gifs/slice_nav.gif')
+        # #around 58:45 x20
+        # snv_vid.setScaledSize(QtCore.QSize(600,550))
+        # self.snv_label.setMovie(snv_vid)
+        # snv_vid.start()
         
         #add layout for info section
         self.sn_layout = QtWidgets.QVBoxLayout()
@@ -217,7 +237,7 @@ class TutorialWindow(QtWidgets.QWidget):
         self.p6_layout =  QtWidgets.QVBoxLayout()
         self.p6_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.p6_layout.addLayout(self.sn_layout)
-        self.p6_layout.addWidget(self.snv_label) #slice nav vid
+        self.p6_layout.addLayout(self.sn_vid_layout) #slice nav vid
         self.page_6.setLayout(self.p6_layout)
         
         #add tab to list of tabs
