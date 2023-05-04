@@ -42,10 +42,10 @@ class TutorialWindow(QtWidgets.QWidget):
         
         #----Generation of Info Tabs----     
         #----Set big font---   
-        big_font = QtGui.QFont("San Francisco", 20)
+        big_font = QtGui.QFont("San Francisco", 20) #does not like San Fanciso font
         big_font.setBold(True)
         
-        #----generate movies------> does not show when reopened
+        #-----------------------Loading in mp4s-------------------------v
         #----shadows-----
         self.s_vid_layout = QtWidgets.QVBoxLayout()
         self.s_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
@@ -91,7 +91,23 @@ class TutorialWindow(QtWidgets.QWidget):
         
         self.sn_vid_layout.addWidget(self.sn_vidWid)
         
-        #--------------------------------General Click------------------------------>add
+        #----segmentation loading-----
+        self.sl_vid_layout = QtWidgets.QVBoxLayout()
+        self.sl_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+        
+        self.sl_player = QMediaPlayer()
+        self.sl_player.setSource(QtCore.QUrl('qs/mp4s/seg_loading.mp4'))
+        self.sl_vidWid = QVideoWidget()
+        self.sl_vidWid.setMaximumSize(600, 600)
+        self.sl_player.setVideoOutput(self.sl_vidWid)
+        self.sl_vidWid.show()
+        self.sl_player.play()
+        self.sl_player.setLoops(QMediaPlayer.Loops.Infinite)
+        
+        self.sl_vid_layout.addWidget(self.sl_vidWid)
+        #-----------------------Loading in mp4s-------------------------^
+        
+        #--------------------------------General Click------------------------------
         self.gc_label = QtWidgets.QLabel("\nAdding Points")
         self.gc_label.setFont(big_font)
         self.gc_descript_label = QtWidgets.QLabel(" - Left click on the canvas to add points")
@@ -187,14 +203,6 @@ class TutorialWindow(QtWidgets.QWidget):
         self.s_label.setFont(big_font)
         self.s_descript_label = QtWidgets.QLabel(" - A shadow is your points from another key slice\n     - Black shadows are for prior key slices \n     - White shadows are for the succeeding key slices\n - Circles surrounding the points on the shadow help you keep track of how many points you have placed")
         
-        #----generate gif------
-        # self.sv_label = QtWidgets.QLabel()
-        # sv_vid = QtGui.QMovie('qs/gifs/shadows.gif')
-        # #around 58:45 x20
-        # sv_vid.setScaledSize(QtCore.QSize(600,550))
-        # self.sv_label.setMovie(sv_vid)
-        # sv_vid.start()
-        
         #add layout for info section
         self.s_layout = QtWidgets.QVBoxLayout()
         self.s_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
@@ -206,8 +214,7 @@ class TutorialWindow(QtWidgets.QWidget):
         self.p4_layout =  QtWidgets.QVBoxLayout()
         self.p4_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.p4_layout.addLayout(self.s_layout)
-        # self.p4_layout.addWidget(self.sv_label) #shadows vid
-        self.p4_layout.addLayout(self.s_vid_layout)
+        self.p4_layout.addLayout(self.s_vid_layout) #shadows vid
         self.page_4.setLayout(self.p4_layout)
         
         #add tab to list of tabs
@@ -217,15 +224,7 @@ class TutorialWindow(QtWidgets.QWidget):
         self.i_label = QtWidgets.QLabel("\nInterpolation")
         self.i_label.setFont(big_font)
         self.i_descript_label = QtWidgets.QLabel(" - Between 2 red key slices there are interpolated segmentation lines represented by the yellow color")
-        
-        #----generate gif------
-        # self.iv_label = QtWidgets.QLabel()
-        # iv_vid = QtGui.QMovie('qs/gifs/interpolation.gif')
-        # #around 58:45 x20
-        # iv_vid.setScaledSize(QtCore.QSize(600,550))
-        # self.iv_label.setMovie(iv_vid)
-        # iv_vid.start()
-        
+                
         #add layout for info section
         self.i_layout = QtWidgets.QVBoxLayout()
         self.i_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
@@ -237,7 +236,6 @@ class TutorialWindow(QtWidgets.QWidget):
         self.p5_layout =  QtWidgets.QVBoxLayout()
         self.p5_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.p5_layout.addLayout(self.i_layout)
-        # self.p5_layout.addWidget(self.iv_label) #interp vid
         self.p5_layout.addLayout(self.i_vid_layout) #interp vid
         self.page_5.setLayout(self.p5_layout)
         
@@ -250,14 +248,6 @@ class TutorialWindow(QtWidgets.QWidget):
         self.sn_label = QtWidgets.QLabel("\nSlice Navigation")
         self.sn_label.setFont(big_font)
         self.sn_descript_label = QtWidgets.QLabel(" - Single arrows move a single slice forward and backwards\n - Double arrows move to the nearest key slice in the given direciton,\n   when no key slice the number of slices indicated by the jump size box \n - The dropdown allows for viewing all of the key slices and navigate to them")
-        
-        #----generate gif------
-        # self.snv_label = QtWidgets.QLabel()
-        # snv_vid = QtGui.QMovie('qs/gifs/slice_nav.gif')
-        # #around 58:45 x20
-        # snv_vid.setScaledSize(QtCore.QSize(600,550))
-        # self.snv_label.setMovie(snv_vid)
-        # snv_vid.start()
         
         #add layout for info section
         self.sn_layout = QtWidgets.QVBoxLayout()
@@ -276,7 +266,30 @@ class TutorialWindow(QtWidgets.QWidget):
         #add tab to list of tabs
         self.p6_index = self.tabs.addTab(self.page_6, "Slice Nav")
         
-        #----button to easly move to next page?-------
+        #---------------------------------Segmentation Loading---------------------------------
+        self.sl_label = QtWidgets.QLabel("\nSegmentation Loading and Editing")
+        self.sl_label.setFont(big_font)
+        self.sl_descript_label = QtWidgets.QLabel(" - Previous segmentations can be viewed and edited by selecting on them in the previous \n segmentations box \n - When multiple segmentations are loaded you can tell which one you have selected by the \n extra circle around the points \n - Right click on another segmentation on the canvas to change the selection \n - Add your current segmentation to the list by saving points \n     Note: It is strongly recommended to load segmentations completed through \n     the Quick Segment tool, segmentations from other tools may not be compatible ")
+        
+        #add layout for info section
+        self.sl_layout = QtWidgets.QVBoxLayout()
+        self.sl_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.sl_layout.addWidget(self.sl_label)
+        self.sl_layout.addWidget(self.sl_descript_label)
+        
+        #create tab widget
+        self.page_7 =QtWidgets.QWidget()
+        self.p7_layout =  QtWidgets.QVBoxLayout()
+        self.p7_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.p7_layout.addLayout(self.sl_layout)
+        self.p7_layout.addLayout(self.sl_vid_layout) #interp vid
+        self.page_7.setLayout(self.p7_layout)
+        
+        #add tab to list of tabs
+        self.p7_index = self.tabs.addTab(self.page_7, "Seg Load")
+        
+        
+        #----button to easly move to next page?------- -> not in use yet
         self.next_button = QtWidgets.QPushButton("Next")
         self.next_button.clicked.connect(lambda: self.next_tut_page())
         
