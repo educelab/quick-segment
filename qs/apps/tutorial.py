@@ -45,7 +45,38 @@ class TutorialWindow(QtWidgets.QWidget):
         big_font = QtGui.QFont("San Francisco", 20)
         big_font.setBold(True)
         
-        #----generate movie------> does not show
+        #----generate movies------> does not show when reopened
+        #----shadows-----
+        self.s_vid_layout = QtWidgets.QVBoxLayout()
+        self.s_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+        
+        self.s_player = QMediaPlayer()
+        self.s_player.setSource(QtCore.QUrl('qs/mp4s/shadows.mp4'))
+        self.s_vidWid = QVideoWidget()
+        self.s_vidWid.setMaximumSize(550, 600)
+        self.s_player.setVideoOutput(self.s_vidWid)
+        self.s_vidWid.show()
+        self.s_player.play()
+        self.s_player.setLoops(QMediaPlayer.Loops.Infinite)
+        
+        self.s_vid_layout.addWidget(self.s_vidWid)
+        
+        #----interpolation-----
+        self.i_vid_layout = QtWidgets.QVBoxLayout()
+        self.i_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+        
+        self.i_player = QMediaPlayer()
+        self.i_player.setSource(QtCore.QUrl('qs/mp4s/interpolation.mp4'))
+        self.i_vidWid = QVideoWidget()
+        self.i_vidWid.setMaximumSize(550, 600)
+        self.i_player.setVideoOutput(self.i_vidWid)
+        self.i_vidWid.show()
+        self.i_player.play()
+        self.i_player.setLoops(QMediaPlayer.Loops.Infinite)
+        
+        self.i_vid_layout.addWidget(self.i_vidWid)
+        
+        #----slice nav-----
         self.sn_vid_layout = QtWidgets.QVBoxLayout()
         self.sn_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
         
@@ -154,15 +185,15 @@ class TutorialWindow(QtWidgets.QWidget):
         #---------------------------------Shadows---------------------------------
         self.s_label = QtWidgets.QLabel("\nShadows")
         self.s_label.setFont(big_font)
-        self.s_descript_label = QtWidgets.QLabel(" - A shadow is your points from another key slice\n     - Black shadows are for prior key slices \n     - White shadows are for the succeeding key slices")
+        self.s_descript_label = QtWidgets.QLabel(" - A shadow is your points from another key slice\n     - Black shadows are for prior key slices \n     - White shadows are for the succeeding key slices\n - Circles surrounding the points on the shadow help you keep track of how many points you have placed")
         
         #----generate gif------
-        self.sv_label = QtWidgets.QLabel()
-        sv_vid = QtGui.QMovie('qs/gifs/shadows.gif')
-        #around 58:45 x20
-        sv_vid.setScaledSize(QtCore.QSize(600,550))
-        self.sv_label.setMovie(sv_vid)
-        sv_vid.start()
+        # self.sv_label = QtWidgets.QLabel()
+        # sv_vid = QtGui.QMovie('qs/gifs/shadows.gif')
+        # #around 58:45 x20
+        # sv_vid.setScaledSize(QtCore.QSize(600,550))
+        # self.sv_label.setMovie(sv_vid)
+        # sv_vid.start()
         
         #add layout for info section
         self.s_layout = QtWidgets.QVBoxLayout()
@@ -175,7 +206,8 @@ class TutorialWindow(QtWidgets.QWidget):
         self.p4_layout =  QtWidgets.QVBoxLayout()
         self.p4_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.p4_layout.addLayout(self.s_layout)
-        self.p4_layout.addWidget(self.sv_label) #shadows vid
+        # self.p4_layout.addWidget(self.sv_label) #shadows vid
+        self.p4_layout.addLayout(self.s_vid_layout)
         self.page_4.setLayout(self.p4_layout)
         
         #add tab to list of tabs
@@ -187,12 +219,12 @@ class TutorialWindow(QtWidgets.QWidget):
         self.i_descript_label = QtWidgets.QLabel(" - Between 2 red key slices there are interpolated segmentation lines represented by the yellow color")
         
         #----generate gif------
-        self.iv_label = QtWidgets.QLabel()
-        iv_vid = QtGui.QMovie('qs/gifs/interpolation.gif')
-        #around 58:45 x20
-        iv_vid.setScaledSize(QtCore.QSize(600,550))
-        self.iv_label.setMovie(iv_vid)
-        iv_vid.start()
+        # self.iv_label = QtWidgets.QLabel()
+        # iv_vid = QtGui.QMovie('qs/gifs/interpolation.gif')
+        # #around 58:45 x20
+        # iv_vid.setScaledSize(QtCore.QSize(600,550))
+        # self.iv_label.setMovie(iv_vid)
+        # iv_vid.start()
         
         #add layout for info section
         self.i_layout = QtWidgets.QVBoxLayout()
@@ -205,7 +237,8 @@ class TutorialWindow(QtWidgets.QWidget):
         self.p5_layout =  QtWidgets.QVBoxLayout()
         self.p5_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.p5_layout.addLayout(self.i_layout)
-        self.p5_layout.addWidget(self.iv_label) #interp vid
+        # self.p5_layout.addWidget(self.iv_label) #interp vid
+        self.p5_layout.addLayout(self.i_vid_layout) #interp vid
         self.page_5.setLayout(self.p5_layout)
         
         #add tab to list of tabs
@@ -242,7 +275,6 @@ class TutorialWindow(QtWidgets.QWidget):
         
         #add tab to list of tabs
         self.p6_index = self.tabs.addTab(self.page_6, "Slice Nav")
-        
         
         #----button to easly move to next page?-------
         self.next_button = QtWidgets.QPushButton("Next")
