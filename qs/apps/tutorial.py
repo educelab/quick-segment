@@ -141,7 +141,7 @@ class TutorialWindow(QtWidgets.QWidget):
         #--------------------------------Long Click Move-------------------------------->move
         self.lcm_label = QtWidgets.QLabel("\nMoving Points")
         self.lcm_label.setFont(big_font)
-        self.lcm_descript_label = QtWidgets.QLabel(" - Left click on a point then drag and drop it where you want to move it to \n     Note: A point selected to move turns blue")
+        self.lcm_descript_label = QtWidgets.QLabel(" - Left click on a point then drag and drop it where you want to move it to \n\nNote: A point selected to move turns blue")
         
         #----generate gif------
         self.lmcv_label = QtWidgets.QLabel()
@@ -269,7 +269,7 @@ class TutorialWindow(QtWidgets.QWidget):
         #---------------------------------Segmentation Loading---------------------------------
         self.sl_label = QtWidgets.QLabel("\nSegmentation Loading and Editing")
         self.sl_label.setFont(big_font)
-        self.sl_descript_label = QtWidgets.QLabel(" - Previous segmentations can be viewed and edited by selecting on them in the previous \n segmentations box \n - When multiple segmentations are loaded you can tell which one you have selected by the \n extra circle around the points \n - Right click on another segmentation on the canvas to change the selection \n - Add your current segmentation to the list by saving points \n     Note: It is strongly recommended to load segmentations completed through \n     the Quick Segment tool, segmentations from other tools may not be compatible ")
+        self.sl_descript_label = QtWidgets.QLabel(" - Previous segmentations can be viewed and edited by selecting on them in the previous \n segmentations box \n - Right click on segmentation select it for editing, indicated by extra circle \n - Add your current segmentation to the list by saving points \n\nNote: It is strongly recommended to load segmentations completed through the Quick Segment tool, \nsegmentations from other tools may not be compatible ")
         
         #add layout for info section
         self.sl_layout = QtWidgets.QVBoxLayout()
