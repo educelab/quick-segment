@@ -385,7 +385,7 @@ class MainWindow(QtWidgets.QWidget):
         self.incorrect_points.buttonClicked.connect(lambda: False)
         
         #-----Tutorial window--------------
-        self.tutorial_window = TutorialWindow()
+        self.tutorial_window = TutorialWindow(parent=self)
         
         # ---------------------------Variable Storage---------------------------------
         # lines is a dictionary that stores slice -> [list of points (x, y, z)]
