@@ -8,16 +8,18 @@ from pathlib import Path
 import numpy as np
 
 from PyQt6 import QtCore, QtGui, QtWidgets, QtMultimediaWidgets, QtMultimedia
-from PyQt6.QtCore import Qt, QRect
+from PyQt6.QtCore import Qt, QRect, QUrl
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtMultimediaWidgets import QVideoWidget
-from PyQt6.QtMultimedia import QMediaPlayer
+from PyQt6.QtMultimedia import QMediaPlayer, QMediaFormat
 
 from matplotlib import pyplot as plt
 from matplotlib import cm, colors
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
+# noinspection PyUnresolvedReferences
+import qs.resources
 
 class TutorialWindow(QtWidgets.QWidget):
     ax = None
@@ -42,7 +44,8 @@ class TutorialWindow(QtWidgets.QWidget):
         
         #----Generation of Info Tabs----     
         #----Set big font---   
-        big_font = QtGui.QFont("San Francisco", 20) #does not like San Fanciso font
+        big_font = QtGui.QFont()
+        big_font.setPixelSize(20)
         big_font.setBold(True)
         
         #-----------------------Loading in mp4s-------------------------v
@@ -51,11 +54,10 @@ class TutorialWindow(QtWidgets.QWidget):
         self.s_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
         
         self.s_player = QMediaPlayer()
-        self.s_player.setSource(QtCore.QUrl('qs/mp4s/shadows.mp4'))
+        self.s_player.setSource(QtCore.QUrl('qrc:/tutorials/shadow-seg.mp4'))
         self.s_vidWid = QVideoWidget()
         self.s_vidWid.setMaximumSize(550, 600)
         self.s_player.setVideoOutput(self.s_vidWid)
-        self.s_vidWid.show()
         self.s_player.play()
         self.s_player.setLoops(QMediaPlayer.Loops.Infinite)
         
@@ -66,11 +68,10 @@ class TutorialWindow(QtWidgets.QWidget):
         self.i_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
         
         self.i_player = QMediaPlayer()
-        self.i_player.setSource(QtCore.QUrl('qs/mp4s/interpolation.mp4'))
+        self.i_player.setSource(QtCore.QUrl('qrc:/tutorials/interpolation.mp4'))
         self.i_vidWid = QVideoWidget()
         self.i_vidWid.setMaximumSize(550, 600)
         self.i_player.setVideoOutput(self.i_vidWid)
-        self.i_vidWid.show()
         self.i_player.play()
         self.i_player.setLoops(QMediaPlayer.Loops.Infinite)
         
@@ -81,11 +82,10 @@ class TutorialWindow(QtWidgets.QWidget):
         self.sn_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
         
         self.sn_player = QMediaPlayer()
-        self.sn_player.setSource(QtCore.QUrl('qs/mp4s/slice_nav.mp4'))
+        self.sn_player.setSource(QtCore.QUrl('qrc:/tutorials/slice-nav.mp4'))
         self.sn_vidWid = QVideoWidget()
         self.sn_vidWid.setMaximumSize(550, 600)
         self.sn_player.setVideoOutput(self.sn_vidWid)
-        self.sn_vidWid.show()
         self.sn_player.play()
         self.sn_player.setLoops(QMediaPlayer.Loops.Infinite)
         
@@ -96,15 +96,14 @@ class TutorialWindow(QtWidgets.QWidget):
         self.sl_vid_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
         
         self.sl_player = QMediaPlayer()
-        self.sl_player.setSource(QtCore.QUrl('qs/mp4s/seg_loading.mp4'))
         self.sl_vidWid = QVideoWidget()
-        self.sl_vidWid.setMaximumSize(600, 600)
+        self.sl_vidWid.setMaximumSize(550, 600)
         self.sl_player.setVideoOutput(self.sl_vidWid)
-        self.sl_vidWid.show()
+        self.sl_vid_layout.addWidget(self.sl_vidWid)
+
+        self.sl_player.setSource(QUrl('qrc:/tutorials/load-seg.mp4'))
         self.sl_player.play()
         self.sl_player.setLoops(QMediaPlayer.Loops.Infinite)
-        
-        self.sl_vid_layout.addWidget(self.sl_vidWid)
         #-----------------------Loading in mp4s-------------------------^
         
         #--------------------------------General Click------------------------------
@@ -131,7 +130,7 @@ class TutorialWindow(QtWidgets.QWidget):
         self.p1_layout =  QtWidgets.QVBoxLayout()
         self.p1_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.p1_layout.addLayout(self.gc_layout)
-        self.p1_layout.addWidget(self.gcv_label) #click vid
+        self.p1_layout.addWidget(self.gcv_vidWid) #click vid
         # self.p1_layout.addWidget(self.sn_vidWid) #click vid
         self.page_1.setLayout(self.p1_layout)
         
@@ -145,7 +144,7 @@ class TutorialWindow(QtWidgets.QWidget):
         
         #----generate gif------
         self.lmcv_label = QtWidgets.QLabel()
-        move_vid = QtGui.QMovie('qs/gifs/move.gif')
+        move_vid = QtGui.QMovie(':/tutorials/move.gif')
         #around 58:45 x20
         move_vid.setScaledSize(QtCore.QSize(600,470))
         self.lmcv_label.setMovie(move_vid)
@@ -175,7 +174,7 @@ class TutorialWindow(QtWidgets.QWidget):
         
         #----generate gif------
         self.cv_label = QtWidgets.QLabel()
-        cv_vid = QtGui.QMovie('qs/gifs/zoom_pan.gif')
+        cv_vid = QtGui.QMovie(':/tutorials/pan-zoom.gif')
         #around 58:45 x20
         cv_vid.setScaledSize(QtCore.QSize(600,470))
         self.cv_label.setMovie(cv_vid)

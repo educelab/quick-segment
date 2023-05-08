@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtMultimedia import QMediaFormat
 from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox
@@ -16,9 +17,7 @@ from matplotlib import cm, colors
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
 
-# noinspection PyUnresolvedReferences
 from qs.apps.tutorial import TutorialWindow
-import qs.resources
 from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
                      load_json, load_vcps, write_metadata, write_ordered_vcps,
                      write_seg_json)
@@ -32,6 +31,9 @@ from qs.interpolation import (find_next_key,
                               full_interpolation)
 from qs.popups import MyPopup, ViewPopUp
 from qs.math import find_min, find_sobel_edge, canny_edge
+
+# noinspection PyUnresolvedReferences
+import qs.resources
 
 
 # -------------------------------------------------------------------
@@ -382,8 +384,8 @@ class MainWindow(QtWidgets.QWidget):
             QMessageBox.StandardButton.Cancel)
         self.incorrect_points.buttonClicked.connect(lambda: False)
         
-        #-----Tutrial windows and run throughs--------------
-        self.tutorial_popup = QtWidgets.QMessageBox()
+        #-----Tutorial window--------------
+        self.tutorial_window = TutorialWindow()
         
         # ---------------------------Variable Storage---------------------------------
         # lines is a dictionary that stores slice -> [list of points (x, y, z)]
@@ -411,8 +413,6 @@ class MainWindow(QtWidgets.QWidget):
 
     
     def load_tutorial(self):
-        self.tutorial_window = TutorialWindow()
-        self.tutorial_window.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         self.tutorial_window.show()
     
     # Function to be called when the mouse is scrolled
@@ -1181,7 +1181,7 @@ def main():
     end = time.time()
     print(f"{end - start} seconds to initialize {vol.shape} volume")
 
-    # creating and loading appliaction window
+    # creating and loading application window
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow(vol, segmentation_dir)
     window.show()

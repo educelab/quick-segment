@@ -9,4 +9,13 @@
         <file alias="clear_slice">resources/icons/clear_slice.png</file>
         <file alias="clear_all_icon">resources/icons/clear_all_icon.png</file>
     </qresource>
+    <qresource prefix="/tutorials">
+        <file alias="click.mp4">resources/tutorials/click.mp4</file>
+        <file alias="interpolation.mp4">resources/tutorials/interpolation.mp4</file>
+        <file alias="load-seg.mp4">resources/tutorials/load-seg.mp4</file>
+        <file alias="move.mp4">resources/tutorials/move.mp4</file>
+        <file alias="pan-zoom.mp4">resources/tutorials/pan-zoom.mp4</file>
+        <file alias="shadow-seg.mp4">resources/tutorials/shadow-seg.mp4</file>
+        <file alias="slice-nav.mp4">resources/tutorials/slice-nav.mp4</file>
+    </qresource>
 </RCC>
