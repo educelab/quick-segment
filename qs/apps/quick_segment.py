@@ -55,6 +55,9 @@ class MainWindow(QtWidgets.QWidget):
         self.colormap = colors.ListedColormap(cm.get_cmap('viridis', 512)(np.linspace(0, 1, 256)))
         self.vol = vol
 
+        #-----Tutorial window--------------
+        self.tutorial_window = TutorialWindow(parent=self)
+
         # ------------------------------Window GUI-----------------------------
         # Overall Window layout
         window_layout = QtWidgets.QHBoxLayout()
@@ -337,7 +340,7 @@ class MainWindow(QtWidgets.QWidget):
         
         #tutorial button
         self.tutorial_button = QtWidgets.QPushButton("Tutorial")
-        self.tutorial_button.clicked.connect(lambda: self.load_tutorial())
+        self.tutorial_button.clicked.connect(self.load_tutorial)
         toolbar_layout.addWidget(self.tutorial_button)
         
         # adding button to layout
@@ -384,9 +387,6 @@ class MainWindow(QtWidgets.QWidget):
             QMessageBox.StandardButton.Cancel)
         self.incorrect_points.buttonClicked.connect(lambda: False)
         
-        #-----Tutorial window--------------
-        self.tutorial_window = TutorialWindow(parent=self)
-        
         # ---------------------------Variable Storage---------------------------------
         # lines is a dictionary that stores slice -> [list of points (x, y, z)]
         self.lines = dict()
@@ -403,15 +403,13 @@ class MainWindow(QtWidgets.QWidget):
         self.global_xlim = self.vol[0].shape[1]
         self.global_ylim = self.vol[0].shape[0]
 
-        # ---------------------------Segmentation Point Drawing---------------------------
-        cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
+        # Segmentation Point Drawing
+        self.canvas.mpl_connect('button_press_event', self.onclick)
+        self.canvas.mpl_connect('button_release_event', self.onrelease)
 
-        cidClick = self.canvas.mpl_connect('button_release_event', self.onrelease)
+        # Matplotlib resizing with keyboard shortcut
+        self.canvas.mpl_connect('scroll_event', self.onScroll)
 
-        # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
-        cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
-
-    
     def load_tutorial(self):
         self.tutorial_window.show()
     

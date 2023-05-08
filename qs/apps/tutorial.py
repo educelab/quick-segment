@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Union, Tuple
 
-from PyQt6 import QtGui
 from PyQt6.QtCore import QUrl, Qt
+from PyQt6.QtGui import QCloseEvent, QFont
 from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
-from PyQt6.QtWidgets import (QDialog, QLabel, QPushButton,
-                             QTabWidget, QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel,
+                             QPushButton, QTabWidget, QVBoxLayout, QWidget)
 
 # noinspection PyUnresolvedReferences
 import qs.resources
@@ -34,9 +34,6 @@ def _create_video_widget(url: Union[QUrl, str]) -> Tuple[
 
 
 class TutorialWindow(QDialog):
-    ax = None
-    bar = None
-
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
@@ -47,7 +44,7 @@ class TutorialWindow(QDialog):
         self.setLayout(QVBoxLayout())
 
         # setup big font
-        big_font = QtGui.QFont()
+        big_font = QFont()
         big_font.setPixelSize(20)
         big_font.setBold(True)
 
@@ -63,9 +60,9 @@ class TutorialWindow(QDialog):
         page_layout = QVBoxLayout()
         page_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         page_widget.setLayout(page_layout)
-        self.tabs.addTab(page_widget, "Points")
+        self.tabs.addTab(page_widget, "Create")
 
-        page_title = QLabel("Adding Points")
+        page_title = QLabel("Add points")
         page_title.setFont(big_font)
         page_layout.addWidget(page_title)
         page_desc = QLabel(" - Left click on the canvas to add points")
@@ -75,7 +72,8 @@ class TutorialWindow(QDialog):
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/click.mp4')
         vid_widget.setMaximumSize(600, 450)
-        self.video_players['click'] = vid_player
+        self.video_players['click'] = (vid_layout, vid_widget, vid_player)
+        page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
 
         # page 2: moving points
@@ -85,7 +83,7 @@ class TutorialWindow(QDialog):
         page_widget.setLayout(page_layout)
         self.tabs.addTab(page_widget, "Adjust")
 
-        page_title = QLabel("Moving Points")
+        page_title = QLabel("Adjust points")
         page_title.setFont(big_font)
         page_layout.addWidget(page_title)
         page_desc = QLabel(
@@ -98,7 +96,8 @@ class TutorialWindow(QDialog):
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/move.mp4')
         vid_widget.setMaximumSize(600, 450)
-        self.video_players['move'] = vid_player
+        self.video_players['move'] = (vid_layout, vid_widget, vid_player)
+        page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
 
         # page 3: Navigation
@@ -106,9 +105,9 @@ class TutorialWindow(QDialog):
         page_layout = QVBoxLayout()
         page_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         page_widget.setLayout(page_layout)
-        self.tabs.addTab(page_widget, "Canvas Navigation")
+        self.tabs.addTab(page_widget, "Canvas navigation")
 
-        page_title = QLabel("Canvas Navigation")
+        page_title = QLabel("Canvas navigation")
         page_title.setFont(big_font)
         page_layout.addWidget(page_title)
         page_desc = QLabel(
@@ -120,7 +119,8 @@ class TutorialWindow(QDialog):
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/pan-zoom.mp4')
         vid_widget.setMaximumSize(600, 450)
-        self.video_players['pan-zoom'] = vid_player
+        self.video_players['pan-zoom'] = (vid_layout, vid_widget, vid_player)
+        page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
 
         # page 4: Slice navigation
@@ -128,23 +128,26 @@ class TutorialWindow(QDialog):
         page_layout = QVBoxLayout()
         page_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         page_widget.setLayout(page_layout)
-        self.tabs.addTab(page_widget, "Slice Navigation")
+        self.tabs.addTab(page_widget, "Volume navigation")
 
-        page_title = QLabel("Slice Navigation")
+        page_title = QLabel("Volume navigation")
         page_title.setFont(big_font)
         page_layout.addWidget(page_title)
         page_desc = QLabel(
             " - Single arrows move a single slice forward and backwards\n"
             " - Double arrows move to the nearest key slice in the given "
-            "direction when no key slice the number of slices indicated by the jump size box\n"
-            " - The dropdown allows for viewing all of the key slices and navigate to them")
+            "direction when no key slice the number of slices indicated by the "
+            "jump size box\n"
+            " - The dropdown allows for viewing all of the key slices and "
+            "navigate to them")
         page_desc.setWordWrap(True)
         page_layout.addWidget(page_desc)
 
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/slice-nav.mp4')
         vid_widget.setMaximumSize(600, 450)
-        self.video_players['slice-nav'] = vid_player
+        self.video_players['slice-nav'] = (vid_layout, vid_widget, vid_player)
+        page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
 
         # page 5: Shadows
@@ -154,7 +157,7 @@ class TutorialWindow(QDialog):
         page_widget.setLayout(page_layout)
         self.tabs.addTab(page_widget, "Shadows")
 
-        page_title = QLabel("Shadow Segmentations")
+        page_title = QLabel("Shadow segmentations")
         page_title.setFont(big_font)
         page_layout.addWidget(page_title)
         page_desc = QLabel(
@@ -169,7 +172,8 @@ class TutorialWindow(QDialog):
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/shadow-seg.mp4')
         vid_widget.setMaximumSize(600, 450)
-        self.video_players['shadow-seg'] = vid_player
+        self.video_players['shadow-seg'] = (vid_layout, vid_widget, vid_player)
+        page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
 
         # page 6: Interpolation
@@ -191,7 +195,8 @@ class TutorialWindow(QDialog):
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/interpolation.mp4')
         vid_widget.setMaximumSize(600, 450)
-        self.video_players['interpolation'] = vid_player
+        self.video_players['interpolation'] = (vid_layout, vid_widget, vid_player)
+        page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
 
         # page 7: Segmentation loading
@@ -199,9 +204,9 @@ class TutorialWindow(QDialog):
         page_layout = QVBoxLayout()
         page_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         page_widget.setLayout(page_layout)
-        self.tabs.addTab(page_widget, "Load Segmentations")
+        self.tabs.addTab(page_widget, "Load and edit")
 
-        page_title = QLabel("Loading and Editing Segmentations")
+        page_title = QLabel("Loading and editing segmentations")
         page_title.setFont(big_font)
         page_layout.addWidget(page_title)
         page_desc = QLabel(
@@ -219,12 +224,35 @@ class TutorialWindow(QDialog):
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/load-seg.mp4')
         vid_widget.setMaximumSize(600, 450)
-        self.video_players['load-seg'] = vid_player
+        self.video_players['load-seg'] = (vid_layout, vid_widget, vid_player)
+        page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
 
-        # ----button to easly move to next page?------- -> not in use yet
-        self.next_button = QPushButton("Next")
-        self.next_button.clicked.connect(lambda: self.next_tut_page())
+        # tutorial navigation buttons
+        prev_btn = QPushButton('<')
+        next_btn = QPushButton('>')
+        prev_btn.clicked.connect(self.prev_page)
+        next_btn.clicked.connect(self.next_page)
+        nav_btns = QHBoxLayout()
+        nav_btns.addWidget(prev_btn)
+        nav_btns.addStretch()
+        nav_btns.addWidget(next_btn)
+        # self.layout().addLayout(nav_btns)
 
-    def next_tut_page(self):
-        self.tabs.setCurrentIndex(self.p2_index)
+        # button box
+        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        btn_box.accepted.connect(self.accept)
+        self.layout().addWidget(btn_box)
+
+
+    def prev_page(self):
+        idx = self.tabs.currentIndex() - 1
+        if idx < 0:
+            idx =  self.tabs.count() - 1
+        self.tabs.setCurrentIndex(idx)
+
+    def next_page(self):
+        idx = self.tabs.currentIndex() + 1
+        if idx >= self.tabs.count():
+            idx = 0
+        self.tabs.setCurrentIndex(idx)
