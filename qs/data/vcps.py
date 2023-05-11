@@ -88,7 +88,7 @@ def get_segmentation_dir(paths_dir, uuid):
 
 def write_ordered_vcps(path, pointset):
     # Open output file and write ASCII header
-    file_path = Path(path) / "pointset.vcps"
+    file_path = Path(path) / "pointset.vcps"    
     with file_path.open('wt') as file:
         file.writelines([
             f'width: {pointset.shape[1]}\n',

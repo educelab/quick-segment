@@ -379,7 +379,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Pop window in case number of points is incorrect
         self.incorrect_points = QtWidgets.QMessageBox()
         self.incorrect_points.setWindowTitle("Incorrect number of points")
-        self.incorrect_points.setText("You cannot save or interpolate if your "
+        self.incorrect_points.setText("Incorrect number of points:\n\n"
+                                      "You cannot save or interpolate if your "
                                       "slices do not have the same number of "
                                       "points")
         self.incorrect_points.setStandardButtons(
@@ -387,6 +388,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.incorrect_points.setDefaultButton(
             QMessageBox.StandardButton.Cancel)
         self.incorrect_points.buttonClicked.connect(lambda: False)
+        
+        # Pop window in case only one slice has points when trying to save out
+        self.insufficient_info = QtWidgets.QMessageBox()
+        self.insufficient_info.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+        self.insufficient_info.setWindowTitle("Insufficent Information")
+        self.insufficient_info.setText("Insufficent Information:\n\n"
+                                       "You cannot save if you \n"
+                                      "only have 1 slice of points.\n"
+                                      "Add points to another slice \n"
+                                      "to save properly.")
+        self.insufficient_info.setStandardButtons(
+            QMessageBox.StandardButton.Cancel)
+        self.insufficient_info.setDefaultButton(
+            QMessageBox.StandardButton.Cancel)
+        self.insufficient_info.buttonClicked.connect(lambda: False)
         
         # ---------------------------Variable Storage---------------------------------
         # lines is a dictionary that stores slice -> [list of points (x, y, z)]
@@ -1003,6 +1019,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def save_points(self, vol, seg_dir):
         if not verify_full_interpolation(self.lines[self.active_line]):
             self.incorrect_points.exec()
+            return
+        
+        if len(self.lines[self.active_line]) <= 1: 
+            self.insufficient_info.show()
             return
         uuid = get_date()
         interpolation = full_interpolation(self.lines[self.active_line], 
