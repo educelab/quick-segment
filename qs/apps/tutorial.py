@@ -38,8 +38,8 @@ class TutorialWindow(QDialog):
         super().__init__(parent=parent)
 
         # setup window
-        self.setMinimumSize(800, 600)
-        self.setMaximumSize(960, 720)
+        self.setMinimumSize(800, 800)
+        self.setMaximumSize(960, 800)
         self.setWindowTitle("Tutorials")
         self.setLayout(QVBoxLayout())
 
@@ -71,7 +71,6 @@ class TutorialWindow(QDialog):
 
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/click.mp4')
-        vid_widget.setMaximumSize(600, 450)
         self.video_players['click'] = (vid_layout, vid_widget, vid_player)
         page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
@@ -95,7 +94,6 @@ class TutorialWindow(QDialog):
 
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/move.mp4')
-        vid_widget.setMaximumSize(600, 450)
         self.video_players['move'] = (vid_layout, vid_widget, vid_player)
         page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
@@ -118,7 +116,6 @@ class TutorialWindow(QDialog):
 
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/pan-zoom.mp4')
-        vid_widget.setMaximumSize(600, 450)
         self.video_players['pan-zoom'] = (vid_layout, vid_widget, vid_player)
         page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
@@ -145,7 +142,6 @@ class TutorialWindow(QDialog):
 
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/slice-nav.mp4')
-        vid_widget.setMaximumSize(600, 450)
         self.video_players['slice-nav'] = (vid_layout, vid_widget, vid_player)
         page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
@@ -171,7 +167,6 @@ class TutorialWindow(QDialog):
 
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/shadow-seg.mp4')
-        vid_widget.setMaximumSize(600, 450)
         self.video_players['shadow-seg'] = (vid_layout, vid_widget, vid_player)
         page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
@@ -194,7 +189,6 @@ class TutorialWindow(QDialog):
 
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/interpolation.mp4')
-        vid_widget.setMaximumSize(600, 450)
         self.video_players['interpolation'] = (vid_layout, vid_widget, vid_player)
         page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
@@ -223,7 +217,6 @@ class TutorialWindow(QDialog):
 
         vid_layout, vid_widget, vid_player = _create_video_widget(
             'qrc:/tutorials/load-seg.mp4')
-        vid_widget.setMaximumSize(600, 450)
         self.video_players['load-seg'] = (vid_layout, vid_widget, vid_player)
         page_widget.layout().addSpacing(20)
         page_widget.layout().addLayout(vid_layout)
