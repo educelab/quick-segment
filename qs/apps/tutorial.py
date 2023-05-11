@@ -241,9 +241,14 @@ class TutorialWindow(QDialog):
 
         # button box
         btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
-        btn_box.accepted.connect(self.accept)
+        # TODO: Workaround for a QTBUG-113498
+        btn_box.accepted.connect(self.hide)
         self.layout().addWidget(btn_box)
 
+    def closeEvent(self, event: QCloseEvent) -> None:
+        # TODO: Workaround for a QTBUG-113498
+        self.hide()
+        event.ignore()
 
     def prev_page(self):
         idx = self.tabs.currentIndex() - 1

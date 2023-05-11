@@ -8,9 +8,8 @@ from pathlib import Path
 import numpy as np
 
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtMultimedia import QMediaFormat
 from PyQt6.QtCore import Qt, QRect
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtWidgets import QMessageBox
 from matplotlib import pyplot as plt
 from matplotlib import cm, colors
@@ -39,7 +38,7 @@ import qs.resources
 # -------------------------------------------------------------------
 #                             WINDOW CLASS
 # ------------------------------------------------------------------
-class MainWindow(QtWidgets.QWidget):
+class MainWindow(QtWidgets.QMainWindow):
     ax = None
     bar = None
 
@@ -57,11 +56,18 @@ class MainWindow(QtWidgets.QWidget):
 
         #-----Tutorial window--------------
         self.tutorial_window = TutorialWindow(parent=self)
+        self.help_menu = self.menuBar().addMenu('&Help')
+        self._tutorial_action = QAction("&Tutorials", self)
+        self._tutorial_action.setStatusTip("View the QS tutorials")
+        self._tutorial_action.triggered.connect(self.load_tutorial)
+        self.help_menu.addAction(self._tutorial_action)
 
         # ------------------------------Window GUI-----------------------------
         # Overall Window layout
+        window_widget = QtWidgets.QWidget()
         window_layout = QtWidgets.QHBoxLayout()
-        self.setLayout(window_layout)
+        window_widget.setLayout(window_layout)
+        self.setCentralWidget(window_widget)
 
         # Slice side of GUI layout
         slice_layout = QtWidgets.QVBoxLayout()
@@ -337,11 +343,6 @@ class MainWindow(QtWidgets.QWidget):
         edge_search_limit_layout = QtWidgets.QHBoxLayout()
         edge_search_limit_layout.addWidget(QtWidgets.QLabel("Max distance of edge:"))
         edge_search_limit_layout.addWidget(self.edge_search_limit)
-        
-        #tutorial button
-        self.tutorial_button = QtWidgets.QPushButton("Tutorial")
-        self.tutorial_button.clicked.connect(self.load_tutorial)
-        toolbar_layout.addWidget(self.tutorial_button)
         
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
