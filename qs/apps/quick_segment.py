@@ -9,15 +9,14 @@ import numpy as np
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import Qt, QRect
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtWidgets import QMessageBox
 from matplotlib import pyplot as plt
 from matplotlib import cm, colors
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
 
-# noinspection PyUnresolvedReferences
-import qs.resources
+from qs.apps.tutorial import TutorialWindow
 from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
                      load_json, load_vcps, write_metadata, write_ordered_vcps,
                      write_seg_json)
@@ -32,11 +31,14 @@ from qs.interpolation import (find_next_key,
 from qs.popups import MyPopup, ViewPopUp
 from qs.math import find_min, find_sobel_edge, canny_edge
 
+# noinspection PyUnresolvedReferences
+import qs.resources
+
 
 # -------------------------------------------------------------------
 #                             WINDOW CLASS
 # ------------------------------------------------------------------
-class MainWindow(QtWidgets.QWidget):
+class MainWindow(QtWidgets.QMainWindow):
     ax = None
     bar = None
 
@@ -47,15 +49,25 @@ class MainWindow(QtWidgets.QWidget):
         self.window_width = 900
         self.window_height = 800
         self.setMinimumSize(self.window_width, self.window_height)
-        self.setWindowTitle("Interpolation Segmentation")
+        self.setWindowTitle("Quick Segment - An Interpolation Segmentation Tool")
         self.edge_colormap = colors.ListedColormap(cm.get_cmap('bone', 512)(np.linspace(0.15, 0.85, 256)))
         self.colormap = colors.ListedColormap(cm.get_cmap('viridis', 512)(np.linspace(0, 1, 256)))
         self.vol = vol
 
+        #-----Tutorial window--------------
+        self.tutorial_window = TutorialWindow(parent=self)
+        self.help_menu = self.menuBar().addMenu('&Help')
+        self._tutorial_action = QAction("&Tutorials", self)
+        self._tutorial_action.setStatusTip("View the QS tutorials")
+        self._tutorial_action.triggered.connect(self.load_tutorial)
+        self.help_menu.addAction(self._tutorial_action)
+
         # ------------------------------Window GUI-----------------------------
         # Overall Window layout
+        window_widget = QtWidgets.QWidget()
         window_layout = QtWidgets.QHBoxLayout()
-        self.setLayout(window_layout)
+        window_widget.setLayout(window_layout)
+        self.setCentralWidget(window_widget)
 
         # Slice side of GUI layout
         slice_layout = QtWidgets.QVBoxLayout()
@@ -331,7 +343,7 @@ class MainWindow(QtWidgets.QWidget):
         edge_search_limit_layout = QtWidgets.QHBoxLayout()
         edge_search_limit_layout.addWidget(QtWidgets.QLabel("Max distance of edge:"))
         edge_search_limit_layout.addWidget(self.edge_search_limit)
-
+        
         # adding button to layout
         toolbar_layout.addWidget(QtWidgets.QLabel("Previous segmentations"))
         toolbar_layout.addWidget(self.segmentation_list)
@@ -341,6 +353,7 @@ class MainWindow(QtWidgets.QWidget):
         segmentation_options.setLayout(segmentation_opt_layout)
         segmentation_opt_layout.addLayout(views_buttons_layout)
         segmentation_opt_layout.addLayout(colormap_buttons_layout)
+        
         #segmentation_opt_layout.addLayout(res_slider_layout)
         segmentation_opt_layout.addWidget(self.undo_point_button)
         segmentation_opt_layout.addWidget(self.clear_slice_button)
@@ -374,7 +387,7 @@ class MainWindow(QtWidgets.QWidget):
         self.incorrect_points.setDefaultButton(
             QMessageBox.StandardButton.Cancel)
         self.incorrect_points.buttonClicked.connect(lambda: False)
-
+        
         # ---------------------------Variable Storage---------------------------------
         # lines is a dictionary that stores slice -> [list of points (x, y, z)]
         self.lines = dict()
@@ -391,14 +404,16 @@ class MainWindow(QtWidgets.QWidget):
         self.global_xlim = self.vol[0].shape[1]
         self.global_ylim = self.vol[0].shape[0]
 
-        # ---------------------------Segmentation Point Drawing---------------------------
-        cidClick = self.canvas.mpl_connect('button_press_event', self.onclick)
+        # Segmentation Point Drawing
+        self.canvas.mpl_connect('button_press_event', self.onclick)
+        self.canvas.mpl_connect('button_release_event', self.onrelease)
 
-        cidClick = self.canvas.mpl_connect('button_release_event', self.onrelease)
+        # Matplotlib resizing with keyboard shortcut
+        self.canvas.mpl_connect('scroll_event', self.onScroll)
 
-        # ---------------------------Matplotlib resizeing with keyboard shotcut---------------------------
-        cidScroll = self.canvas.mpl_connect('scroll_event', self.onScroll)
-
+    def load_tutorial(self):
+        self.tutorial_window.show()
+    
     # Function to be called when the mouse is scrolled
     def onScroll(self, event):
         if event.inaxes == self.ax:
@@ -1165,7 +1180,7 @@ def main():
     end = time.time()
     print(f"{end - start} seconds to initialize {vol.shape} volume")
 
-    # creating and loading appliaction window
+    # creating and loading application window
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow(vol, segmentation_dir)
     window.show()

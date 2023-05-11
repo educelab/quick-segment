@@ -1,7 +1,9 @@
 imageio
 matplotlib
 numpy
+opencv-python
 Pillow
+plotly
 PyQt6>=6.3.1
 tensorstore
 tqdm

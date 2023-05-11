@@ -10,3 +10,5 @@ logs/*
 *.sif
 **/venv/
 **/.venv/
+
+.DS_Store
