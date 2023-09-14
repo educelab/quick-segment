@@ -112,9 +112,8 @@ def write_seg_json(path, pointset):
         json.dump(pointset, file)
 
 
-def write_metadata(path, uuid):
-    # TODO: Hardcoded volume path
-    vol = (os.listdir(path + "/../../volumes")[1])
+def write_metadata(path, vol, uuid):
+
     data = {
         "name": uuid,
         "type": "seg",

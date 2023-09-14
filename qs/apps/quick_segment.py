@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow):
     ax = None
     bar = None
 
-    def __init__(self, vol, seg_dir, initial_slice=0):
+    def __init__(self, vol, vol_name, seg_dir, initial_slice=0):
         super().__init__()
 
         # -------------initial window specs---------------
@@ -192,7 +192,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # save button
         self.save_button = QtWidgets.QPushButton()
         self.save_button.setText('Save Points')
-        self.save_button.clicked.connect(lambda: self.save_points(vol, seg_dir))
+        self.save_button.clicked.connect(lambda: self.save_points(vol, vol_name, seg_dir))
 
         # view button
         self.view_button = QtWidgets.QPushButton()
@@ -1016,7 +1016,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.update_slice(self.vol, self.slice_slider.value())
 
     # Function that save the points out ---------> needs to have the repetition fixed with the code that Bruno added
-    def save_points(self, vol, seg_dir):
+    def save_points(self, vol, vol_name, seg_dir):
         if not verify_full_interpolation(self.lines[self.active_line]):
             self.incorrect_points.exec()
             return
@@ -1033,7 +1033,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                             edge_search_limit=int(self.edge_search_limit.text()),
                                            )
         write_ordered_vcps(get_segmentation_dir(seg_dir, uuid), interpolation)
-        write_metadata(get_segmentation_dir(seg_dir, uuid), uuid)
+        write_metadata(get_segmentation_dir(seg_dir, uuid), vol_name, uuid)
         write_seg_json(get_segmentation_dir(seg_dir, uuid),
                        self.lines[self.active_line])
         QtWidgets.QListWidgetItem(uuid, self.segmentation_list).setCheckState(
@@ -1041,7 +1041,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if (Path(str(str(seg_dir) + "/fromInterpolator")).is_dir()):
             write_ordered_vcps(str(str(seg_dir) + "/fromInterpolator"), interpolation)
-            write_metadata(str(str(seg_dir) + "/fromInterpolator"), "fromInterpolator")
+            write_metadata(str(str(seg_dir) + "/fromInterpolator"), vol_name, "fromInterpolator")
         print("Points saved out")
 
     def clear_slice(self, vol):
@@ -1202,7 +1202,7 @@ def main():
 
     # creating and loading application window
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow(vol, segmentation_dir)
+    window = MainWindow(vol, args.volume, segmentation_dir)
     window.show()
     # allows for exit from the application
     try:
