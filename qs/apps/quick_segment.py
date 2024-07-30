@@ -53,6 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.edge_colormap = colors.ListedColormap(cm.get_cmap('bone', 512)(np.linspace(0.15, 0.85, 256)))
         self.colormap = colors.ListedColormap(cm.get_cmap('viridis', 512)(np.linspace(0, 1, 256)))
         self.vol = vol
+        self.moved_point = False
 
         #-----Tutorial window--------------
         self.tutorial_window = TutorialWindow(parent=self)
@@ -686,7 +687,7 @@ class MainWindow(QtWidgets.QMainWindow):
         curr_yAxisLim = [curr_yAxisLim_orig[0] * self.resolution_div, curr_yAxisLim_orig[1] * self.resolution_div]
 
         if event.button == 1: # Left release
-            if self.moved_point == False:
+            if not self.moved_point:
             
                 # Add a point if the limits have not changed since the press action
                 if self.xAxisLim == curr_xAxisLim and self.yAxisLim == curr_yAxisLim:
@@ -756,7 +757,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.ax.add_artist(
                     plt.Circle((point[0] / self.resolution_div, point[1] / self.resolution_div), 7 / self.resolution_div, facecolor='none', edgecolor='red'))
                 self.canvas.draw_idle()
-                self.moved_point == True
+                self.moved_point = True
 
    
     """
@@ -771,7 +772,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if (event.inaxes == self.ax) and (self.canvas.toolbar.mode == ''):
             self.moved_point = self.cycle_points(self.vol, self.slice_slider.value(), new_point)
-            if (self.moved_point == False):
+            if not self.moved_point:
                 self.pan_limit = False
 
                 if event.button == 1: # Left click
