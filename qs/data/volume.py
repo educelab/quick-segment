@@ -19,13 +19,13 @@ class Volume:
     initialized_volumes: dict[str, Volume] = dict()
 
     @classmethod
-    def from_path(cls, path: str) -> Volume:
+    def from_path(cls, path: str, **kwargs) -> Volume:
         if path in cls.initialized_volumes:
             return cls.initialized_volumes[path]
-        cls.initialized_volumes[path] = Volume(path)
+        cls.initialized_volumes[path] = Volume(path, **kwargs)
         return cls.initialized_volumes[path]
 
-    def __init__(self, vol_path: str):
+    def __init__(self, vol_path: str, load_zarr=True, **kwargs):
         vol_path = Path(vol_path)
         self.path = vol_path
 
@@ -43,7 +43,7 @@ class Volume:
         self.shape_y = self._metadata["height"]
         self.shape_x = self._metadata["width"]
 
-        if (vol_path / 'vol.zarr').exists():
+        if load_zarr and (vol_path / 'vol.zarr').exists():
             logging.info(f'Using discovered vol.zarr')
             vol_path = vol_path / 'vol.zarr'
 

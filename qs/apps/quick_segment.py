@@ -1180,14 +1180,24 @@ class IntLineEdit(QtWidgets.QLineEdit):
 # -----------------------------------------------------------------
 
 def main():
+    try:
+        run()
+    except KeyboardInterrupt as e:
+     logging.debug('Received keyboard interrupt')
+
+
+def run():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', "--input-volpkg", required=True)
     parser.add_argument("--volume", type=str, required=True)
-    parser.add_argument("--save-zarr", action='store_true',
-                        help="If specified, save a zarr version of the volume "
+    parser.add_argument("--save-zarr", action=argparse.BooleanOptionalAction,
+                        help="If specified, save a .zarr version of the volume "
                              "to the volpkg to speed up future load times. "
                              "NOTE: this effectively creates a second copy of "
-                             "the volume.")
+                             "the volume.", default=False)
+    parser.add_argument("--load-zarr", action=argparse.BooleanOptionalAction,
+                        help="If specified, load a .zarr version of the volume "
+                             "when present.", default=True)
     parser.add_argument('--log-level',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR',
                                  'CRITICAL'], type=str.upper, default='WARNING')
@@ -1205,11 +1215,11 @@ def main():
     # Zarr = new volume representation -> Only loads chuncks which are needed = saves memory and is faster
     # Code from Stephen's volume.py (ink-id)
     start = time.time()
-    vol = Volume.from_path(input_vol_dir)
+    vol = Volume.from_path(input_vol_dir, load_zarr=args.load_zarr)
     if args.save_zarr:
         vol.save_zarr()
     end = time.time()
-    print(f"{end - start} seconds to initialize {vol.shape} volume")
+    logging.info(f"{end - start:.5g} seconds to initialize {vol.shape} volume")
 
     # creating and loading application window
     app = QtWidgets.QApplication(sys.argv)
@@ -1219,7 +1229,7 @@ def main():
     try:
         sys.exit(app.exec())
     except SystemExit:
-        print('Closing Window...')
+        logging.info('closing...')
 
 
 if __name__ == "__main__":
