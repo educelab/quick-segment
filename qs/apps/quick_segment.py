@@ -1,38 +1,36 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 import time
 from pathlib import Path
-import numpy as np
 
+import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtCore import Qt, QRect
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtWidgets import QMessageBox
-from matplotlib import pyplot as plt
 from matplotlib import cm, colors
+from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
 
+# noinspection PyUnresolvedReferences
+import qs.resources
 from qs.apps.tutorial import TutorialWindow
 from qs.data import (Volume, fill_seg_list, get_date, get_segmentation_dir,
                      load_json, load_vcps, write_metadata, write_ordered_vcps,
                      write_seg_json)
-from qs.interpolation import (find_next_key, 
+from qs.interpolation import (find_next_key,
                               find_previous_key,
-                              interpolate_point,
-                              verify_full_interpolation, 
-                              verify_partial_interpolation, 
-                              find_normal_direction, 
+                              verify_full_interpolation,
+                              verify_partial_interpolation,
                               partial_interpolation,
                               full_interpolation)
-from qs.popups import MyPopup, ViewPopUp
-from qs.math import find_min, find_sobel_edge, canny_edge
-
-# noinspection PyUnresolvedReferences
-import qs.resources
+from qs.math import find_min, canny_edge
+from qs.popups import ViewPopUp
 
 
 # -------------------------------------------------------------------
@@ -1182,10 +1180,30 @@ class IntLineEdit(QtWidgets.QLineEdit):
 # -----------------------------------------------------------------
 
 def main():
+    try:
+        run()
+    except KeyboardInterrupt as e:
+     logging.debug('Received keyboard interrupt')
+
+
+def run():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', "--input-volpkg", required=True)
     parser.add_argument("--volume", type=str, required=True)
+    parser.add_argument("--save-zarr", action=argparse.BooleanOptionalAction,
+                        help="If specified, save a .zarr version of the volume "
+                             "to the volpkg to speed up future load times. "
+                             "NOTE: this effectively creates a second copy of "
+                             "the volume.", default=False)
+    parser.add_argument("--load-zarr", action=argparse.BooleanOptionalAction,
+                        help="If specified, load a .zarr version of the volume "
+                             "when present.", default=True)
+    parser.add_argument('--log-level',
+                        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR',
+                                 'CRITICAL'], type=str.upper, default='WARNING')
     args = parser.parse_args()
+
+    logging.basicConfig(level=args.log_level)
 
     # ---------saving paths to folders within volume------------
     volpkg_path = Path(args.input_volpkg)
@@ -1197,9 +1215,11 @@ def main():
     # Zarr = new volume representation -> Only loads chuncks which are needed = saves memory and is faster
     # Code from Stephen's volume.py (ink-id)
     start = time.time()
-    vol = Volume.from_path(input_vol_dir)
+    vol = Volume.from_path(input_vol_dir, load_zarr=args.load_zarr)
+    if args.save_zarr:
+        vol.save_zarr()
     end = time.time()
-    print(f"{end - start} seconds to initialize {vol.shape} volume")
+    logging.info(f"{end - start:.5g} seconds to initialize {vol.shape} volume")
 
     # creating and loading application window
     app = QtWidgets.QApplication(sys.argv)
@@ -1209,7 +1229,7 @@ def main():
     try:
         sys.exit(app.exec())
     except SystemExit:
-        print('Closing Window...')
+        logging.info('closing...')
 
 
 if __name__ == "__main__":

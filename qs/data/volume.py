@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 import tensorstore as ts
@@ -19,14 +19,15 @@ class Volume:
     initialized_volumes: dict[str, Volume] = dict()
 
     @classmethod
-    def from_path(cls, path: str) -> Volume:
+    def from_path(cls, path: str, **kwargs) -> Volume:
         if path in cls.initialized_volumes:
             return cls.initialized_volumes[path]
-        cls.initialized_volumes[path] = Volume(path)
+        cls.initialized_volumes[path] = Volume(path, **kwargs)
         return cls.initialized_volumes[path]
 
-    def __init__(self, vol_path: str):
+    def __init__(self, vol_path: str, load_zarr=True, **kwargs):
         vol_path = Path(vol_path)
+        self.path = vol_path
 
         # Load metadata
         self._metadata = dict()
@@ -41,6 +42,10 @@ class Volume:
         self.shape_z = self._metadata["slices"]
         self.shape_y = self._metadata["height"]
         self.shape_x = self._metadata["width"]
+
+        if load_zarr and (vol_path / 'vol.zarr').exists():
+            logging.info(f'Using discovered vol.zarr')
+            vol_path = vol_path / 'vol.zarr'
 
         if vol_path.suffix == ".zarr":
             self._is_zarr = True
@@ -87,7 +92,6 @@ class Volume:
             for slice_i, slice_file in tqdm(list(enumerate(slice_files))):
                 img = np.array(Image.open(slice_file), dtype=np.uint16).copy()
                 self._data[slice_i, :, :] = img
-            print()
 
     def __getitem__(self, key):
         # TODO consider adding bounds checking and return 0 if not in bounds (to match previous implementation)
@@ -102,3 +106,37 @@ class Volume:
     @property
     def shape(self) -> Tuple[int, ...]:
         return self._data.shape
+
+    def save_zarr(self, path: Union[str | Path | None] = None):
+        if path is None:
+            if self.path.suffix == ".zarr":
+                logging.warning('Zarr already exists')
+                return
+            path = self.path / f'vol.zarr'
+        elif isinstance(path, str):
+            path = Path(path)
+
+        if path.exists():
+            logging.warning('Zarr already exists')
+            return
+
+        logging.info(f'Saving zarr volume: {str(path)}')
+        chunk_size = 256
+        data = ts.open(
+            {
+                "driver": "zarr",
+                "kvstore": {
+                    "driver": "file",
+                    "path": str(path),
+                },
+                "metadata": {
+                    "shape": self.shape,
+                    "chunks": [chunk_size, chunk_size, chunk_size],
+                    "dtype": "<u2",
+                },
+                'create': True,
+                'delete_existing': True
+            }
+        ).result()
+
+        data[:].write(self._data[:]).result()
