@@ -1215,9 +1215,7 @@ def run():
     # Zarr = new volume representation -> Only loads chuncks which are needed = saves memory and is faster
     # Code from Stephen's volume.py (ink-id)
     start = time.time()
-    vol = Volume.from_path(input_vol_dir, load_zarr=args.load_zarr)
-    if args.save_zarr:
-        vol.save_zarr()
+    vol = Volume.from_path(input_vol_dir, load_zarr=args.load_zarr, save_zarr=args.save_zarr)
     end = time.time()
     logging.info(f"{end - start:.5g} seconds to initialize {vol.shape} volume")
 
