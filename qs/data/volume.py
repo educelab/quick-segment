@@ -116,6 +116,10 @@ class Volume:
             for slice_i, slice_file in tqdm(list(enumerate(slice_files))):
                 img = np.array(Image.open(slice_file), dtype=np.uint16).copy()
                 save_slice(slice_i, img)
+                while len(futures) > 16:
+                    for idx, f in enumerate(futures):
+                        if f.done():
+                            futures.pop(idx)
 
             # wait for futures if we need to
             if len(futures) > 0:
