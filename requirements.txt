@@ -4,7 +4,6 @@ numpy
 opencv-python
 Pillow
 plotly
-psutil
 PyQt6>=6.3.1
 tensorstore
 tqdm

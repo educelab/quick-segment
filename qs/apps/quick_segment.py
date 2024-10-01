@@ -16,7 +16,6 @@ from matplotlib import cm, colors
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qtagg import (FigureCanvasQTAgg as FigCanvas,
                                                NavigationToolbar2QT as NavigationToolbar)
-import psutil
 
 # noinspection PyUnresolvedReferences
 import qs.resources

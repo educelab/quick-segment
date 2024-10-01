@@ -9,18 +9,15 @@ import numpy as np
 import tensorstore as ts
 from PIL import Image
 from tqdm import tqdm
-import psutil
 
 
-def _open_zarr(path, shape, chunk_size, create=False, delete_existing=False,
-               cache_bytes=None):
+def _create_zarr(path, shape, chunk_shape,
+                 delete_existing=False, cache_bytes=None):
     extra = {}
-    if create:
-        extra['create'] = True
     if delete_existing:
         extra['delete_existing'] = True
     if cache_bytes is None:
-        cache_bytes = psutil.virtual_memory().total // 2
+        cache_bytes = 1_000_000_000
     return ts.open(
         {
             "driver": "zarr",
@@ -30,15 +27,37 @@ def _open_zarr(path, shape, chunk_size, create=False, delete_existing=False,
             },
             "metadata": {
                 "shape": shape,
-                "chunks": [chunk_size, chunk_size, chunk_size],
+                "chunks": chunk_shape,
                 "dtype": "<u2",
+                "fill_value": 0,
             },
             "context": {
                 "cache_pool": {
                     "total_bytes_limit": cache_bytes,
                 }
-            }
+            },
+            "create": True
         } | extra
+    ).result()
+
+
+def _load_zarr(path, cache_bytes=None):
+    if cache_bytes is None:
+        cache_bytes = 1_000_000_000
+    return ts.open(
+        {
+            "driver": "zarr",
+            "kvstore": {
+                "driver": "file",
+                "path": str(path),
+            },
+            "context": {
+                "cache_pool": {
+                    "total_bytes_limit": cache_bytes,
+                }
+            },
+            "recheck_cached_data": "open"
+        }
     ).result()
 
 
@@ -74,23 +93,25 @@ class Volume:
         self.shape_z = self._metadata["slices"]
         self.shape_y = self._metadata["height"]
         self.shape_x = self._metadata["width"]
-        data_shape = [self.shape_z, self.shape_y, self.shape_x]
+        data_shape = (self.shape_z, self.shape_y, self.shape_x)
 
         zarr_path = vol_path / 'vol.zarr'
         if load_zarr and zarr_path.exists():
             logging.info(f'Using discovered vol.zarr')
             vol_path = vol_path / 'vol.zarr'
 
-        # loader cache size (4GB)
-        max_bytes = 4000000000
+        # loader cache size
+        max_bytes = 4_000_000_000
         slice_bytes = np.prod(data_shape[1:]) * 2
 
-        chunk_size = 256
+        # Create chunk size
+        # TODO: Need a better heuristic for this. See h5py?
+        chunk_size = [8, 256, 256]
+
+        #
         if vol_path.suffix == ".zarr":
             self._is_zarr = True
-            self._data = _open_zarr(vol_path,
-                                    data_shape,
-                                    chunk_size,
+            self._data = _load_zarr(vol_path,
                                     cache_bytes=zarr_cache_bytes)
         else:
             self._is_zarr = save_zarr
@@ -114,13 +135,13 @@ class Volume:
                 if slice_batch_size == 0:
                     slice_batch_size = 1
                 # shrink the batch size to a multiple of the chunk size to avoid file rewrites
-                elif slice_batch_size > chunk_size:
-                    slice_batch_size = chunk_size * (
-                                slice_batch_size // chunk_size)
-                data = _open_zarr(zarr_path,
-                                  [self.shape_z, self.shape_y, self.shape_x],
-                                  chunk_size, create=True, delete_existing=True,
-                                  cache_bytes=zarr_cache_bytes)
+                elif slice_batch_size > chunk_size[0]:
+                    slice_batch_size = chunk_size[0] * (
+                            slice_batch_size // chunk_size[0])
+
+                data = _create_zarr(zarr_path, data_shape, chunk_size,
+                                    delete_existing=True,
+                                    cache_bytes=zarr_cache_bytes)
 
                 def save_slice(start, end, image):
                     data[start:end, :, :].write(image).result()
@@ -131,7 +152,7 @@ class Volume:
 
                 def save_slice(start, end, image):
                     data[start:end, :, :] = image
-            logging.debug(f'Slice batch size: {slice_batch_size}')
+            logging.info(f'Slice batch size: {slice_batch_size}')
             batch = []
             batch_start = 0
             for slice_i, slice_file in tqdm(list(enumerate(slice_files))):
@@ -146,6 +167,16 @@ class Volume:
                         save_slice(batch_start, batch_end, batch)
                         batch_start = batch_end
                         batch = []
+
+            # save remaining images
+            if len(batch) > 0:
+                if len(batch) == 1:
+                    save_slice(batch_start, batch_start + 1, batch[0])
+                else:
+                    batch = np.stack(batch)
+                    batch_end = batch_start + len(batch)
+                    save_slice(batch_start, batch_end, batch)
+                    del batch
 
             self._data = data
 
