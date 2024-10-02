@@ -41,7 +41,8 @@ def _create_zarr(path: Union[str, PathLike],
                     "total_bytes_limit": cache_bytes,
                 }
             },
-            "create": True
+            "create": True,
+            "recheck_cached_data": "open"
         } | extra
     ).result()
 
@@ -107,13 +108,13 @@ class Volume:
             logging.info(f'Using discovered vol.zarr')
             vol_path = vol_path / 'vol.zarr'
 
-        # loader cache size max(1x slice size, 10% of RAM)
+        # loader cache size max(1x slice size, 5% of RAM)
         # TODO: Parameterize?
         slice_bytes = np.prod(data_shape[1:]) * 2
-        max_bytes = max(slice_bytes, psutil.virtual_memory().total // 10)
+        max_bytes = max(slice_bytes, psutil.virtual_memory().total // 20)
 
         # Create chunk size
-        # TODO: Need a better heuristic for this. See h5py?
+        # TODO: Need a heuristic for this. See h5py?
         chunk_size = [8, 256, 256]
 
         # Load the existing zarr
@@ -171,34 +172,32 @@ class Volume:
 
             # Load slice images into volume
             logging.info(f"Loading volume slices from {vol_path}...")
-            batch = []
+            batch = np.empty((min(self.shape_z, slice_batch_size), self.shape_y,
+                              self.shape_x), dtype=np.uint16)
             batch_start = 0
             for slice_i, slice_file in tqdm(list(enumerate(slice_files))):
                 # Load the images
-                img = np.array(Image.open(slice_file), dtype=np.uint16).copy()
+                img = np.array(Image.open(slice_file))
                 # Fallback to single slice saving if batch size is too small
                 if slice_batch_size <= 1:
                     save_slice(batch_start, batch_start + 1, img)
+                    batch_start += 1
                 # Add to the slice batch
                 else:
-                    batch.append(img)
+                    batch[slice_i - batch_start] = img
                     # If our batch is full, write to the output
-                    if len(batch) == slice_batch_size:
-                        batch = np.stack(batch)
+                    if (slice_i - batch_start) == slice_batch_size - 1:
                         batch_end = batch_start + slice_batch_size
                         save_slice(batch_start, batch_end, batch)
                         batch_start = batch_end
-                        batch = []
-
-            # Flush the batch list to the output if its not empty
-            if len(batch) > 0:
-                if len(batch) == 1:
-                    save_slice(batch_start, batch_start + 1, batch[0])
-                else:
-                    batch_end = batch_start + len(batch)
-                    batch = np.stack(batch)
-                    save_slice(batch_start, batch_end, batch)
-                    del batch
+                        # next batch size if the min of remaining slices and current batch size
+                        slice_batch_size = min(self.shape_z - batch_start,
+                                               slice_batch_size)
+                        del batch
+                        if slice_batch_size > 1:
+                            batch = np.empty(
+                                (slice_batch_size, self.shape_y, self.shape_x),
+                                dtype=np.uint16)
 
             # Store the handle to the data array
             self._data = data
