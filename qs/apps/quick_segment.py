@@ -1198,9 +1198,8 @@ def run():
     parser.add_argument("--load-zarr", action=argparse.BooleanOptionalAction,
                         help="If specified, load a .zarr version of the volume "
                              "when present.", default=True)
-    parser.add_argument("--zarr-cache-limit", type=int,
-                        help="In bytes. Defaults to half of the total system "
-                             "RAM.")
+    parser.add_argument("--zarr-cache-bytes", type=int,
+                        help="Defaults to 1GB of RAM.")
     parser.add_argument('--log-level',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR',
                                  'CRITICAL'], type=str.upper, default='WARNING')
@@ -1221,7 +1220,7 @@ def run():
     vol = Volume.from_path(input_vol_dir,
                            load_zarr=args.load_zarr,
                            save_zarr=args.save_zarr,
-                           zarr_cache_bytes=args.zarr_cache_limit)
+                           zarr_cache_bytes=args.zarr_cache_bytes)
     end = time.time()
     logging.info(f"{end - start:.5g} seconds to initialize {vol.shape} volume")
 
